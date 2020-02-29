@@ -1,0 +1,3 @@
+[submodule "deps/dcpu16-asm"]
+	path = deps/dcpu16-asm
+	url = https://github.com/20k/dcpu16-asm

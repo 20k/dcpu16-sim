@@ -1,9 +1,8 @@
-#include <iostream>
+#include "base_sim.hpp"
 
-using namespace std;
 
 int main()
 {
-    cout << "Hello world!" << endl;
+
     return 0;
 }
