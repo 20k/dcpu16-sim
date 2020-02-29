@@ -101,9 +101,21 @@ struct location
     }
 };
 
+std::pair<bool, uint16_t> overflow_add(uint16_t v1, uint16_t v2)
+{
+    uint32_t sum = (uint32_t)v1 + (uint32_t)v2;
+
+    return {sum > 0xffff, sum & 0xffff};
+}
+
 struct CPU;
 
+constexpr
 std::optional<location> exec_value_reference(CPU& exec, uint16_t arg, arg_pos::type pos);
+
+inline
+constexpr
+int get_instruction_length(uint16_t v);
 
 struct CPU
 {
@@ -174,6 +186,324 @@ struct CPU
     constexpr
     bool step()
     {
+        uint16_t pc = regs[PC_REG];
+        uint16_t instr = mem[pc];
+
+        {
+            auto [o, a, b] = decompose_type_a(instr);
+
+            if(o == 0x10 || o == 0x11 || o == 0x12 || o == 0x13 || o == 0x14 || o == 0x15 || o == 0x16 || o == 0x17)
+            {
+                if(skipping)
+                {
+                    regs[PC_REG] += get_instruction_length(instr);
+                    return false;
+                }
+            }
+
+            if(skipping)
+            {
+                skipping = false;
+                regs[PC_REG] += get_instruction_length(instr);
+                return false;
+            }
+        }
+
+        instr_type::type type = get_type(instr);
+
+        if(type == instr_type::A)
+        {
+            auto [o, a, b] = decompose_type_a(instr);
+
+            auto exec_a_opt = exec_value_reference(*this, a, arg_pos::A);
+            auto exec_b_opt = exec_value_reference(*this, b, arg_pos::B);
+
+            if(!exec_a_opt.has_value())
+            {
+                return true;
+            }
+
+            if(!exec_b_opt.has_value())
+            {
+                return true;
+            }
+
+            location b_location = exec_b_opt.value();
+
+            uint16_t a_value = fetch_location(exec_a_opt.value());
+            uint16_t b_value = fetch_location(exec_b_opt.value());
+
+            location ex_location = location::reg{EX_REG};
+
+            if(o == 0x01)
+            {
+                set_location(b_location, a_value);
+            }
+
+            else if(o == 0x02)
+            {
+                uint32_t sum = (uint32_t)b_value + (uint32_t)a_value;
+
+                uint16_t overflow = sum > 0xffff;
+
+                set_location(b_location, sum & 0xffff);
+
+                set_location(ex_location, overflow);
+            }
+
+            else if(o == 0x03)
+            {
+                uint32_t sum = (uint32_t)b_value - (uint32_t)a_value;
+
+                uint16_t overflow = sum > 0xffff ? 0xffff : 0;
+
+                set_location(b_location, sum & 0xffff);
+                set_location(ex_location, overflow);
+            }
+
+            else if(o == 0x04)
+            {
+                uint32_t mult = (uint32_t)b_value * (uint32_t)a_value;
+                uint32_t overflow = (mult >> 16) & 0xffff;
+
+                set_location(b_location, mult & 0xffff);
+                set_location(ex_location, overflow & 0xffff);
+            }
+
+            else if(o == 0x05)
+            {
+                int16_t signed_a = a_value;
+                int16_t signed_b = b_value;
+
+                int64_t signed_extended_a = signed_a;
+                int64_t signed_extended_b = signed_b;
+
+                int64_t signed_mul = signed_extended_b * signed_extended_a;
+
+                int32_t truncate = signed_mul;
+                uint32_t shorted = truncate;
+
+                uint32_t overflow = (shorted >> 16) & 0xffff;
+
+                set_location(b_location, shorted & 0xffff);
+                set_location(ex_location, overflow & 0xffff);
+            }
+
+            else if(o == 0x06)
+            {
+                if(a_value == 0)
+                {
+                    set_location(b_location, 0);
+                    set_location(ex_location, 0);
+                }
+                else
+                {
+                    uint16_t sum = b_value / a_value;
+                    uint32_t high_sum = ((uint32_t)b_value << 16) / (uint32_t)a_value;
+
+                    set_location(b_location, sum);
+                    set_location(ex_location, high_sum & 0xffff);
+                }
+            }
+
+            else if(o == 0x07)
+            {
+                if(a_value == 0)
+                {
+                    set_location(b_location, 0);
+                    set_location(ex_location, 0);
+                }
+                else
+                {
+                    int16_t signed_b = b_value;
+                    int16_t signed_a = a_value;
+
+                    uint32_t signed_res = (int32_t)signed_b / (int32_t)signed_a;
+                    uint32_t overflow = ((int64_t)signed_b << 16) / ((int64_t)signed_a);
+
+                    set_location(b_location, signed_res & 0xffff);
+                    set_location(ex_location, overflow & 0xffff);
+                }
+            }
+
+            else if(o == 0x08)
+            {
+                if(a_value == 0)
+                {
+                    set_location(b_location, 0);
+                }
+                else
+                {
+                    set_location(b_location, b_value % a_value);
+                }
+            }
+
+            else if(o == 0x09)
+            {
+                if(a_value == 0)
+                {
+                    set_location(b_location, 0);
+                }
+                else
+                {
+                    int16_t signed_a = a_value;
+                    int16_t signed_b = b_value;
+
+                    int16_t res = signed_b % signed_a;
+                    uint16_t sres = res;
+
+                    set_location(b_location, sres);
+                }
+            }
+
+            else if(o == 0x0a)
+            {
+                set_location(b_location, b_value & a_value);
+            }
+
+            else if(o == 0x0b)
+            {
+                set_location(b_location, b_value | a_value);
+            }
+
+            else if(o == 0x0c)
+            {
+                set_location(b_location, b_value ^ a_value);
+            }
+
+            else if(o == 0x0d)
+            {
+                uint16_t rshift = b_value >> a_value;
+                uint16_t ushift = (((uint32_t)b_value << 16) >> ((uint32_t)a_value)) & 0xffff;
+
+                set_location(b_location, rshift);
+                set_location(ex_location, ushift);
+            }
+
+            else if(o == 0x0e)
+            {
+                int16_t signed_b = b_value;
+
+                // The reason for int64_t here is that shifting into the top bit is UB
+                // C++20 defines signed integers as being 2s complement, but I do not know if they've stripped this
+                // Particular piece of UB out of the standard
+                int64_t signed_extended_b = signed_b;
+
+                uint16_t signed_shift = signed_b >> a_value;
+                uint16_t overflow = (uint64_t)((signed_extended_b << 16) >> a_value) & 0xffff;
+
+                set_location(b_location, signed_shift);
+                set_location(ex_location, overflow);
+            }
+
+            else if(o == 0x0f)
+            {
+                uint16_t left_shifted = b_value << a_value;
+                uint16_t overflow = (((uint32_t)b_value << (uint32_t)a_value) >> 16) & 0xffff;
+
+                set_location(b_location, left_shifted);
+                set_location(ex_location, overflow);
+            }
+
+            else if(o == 0x10)
+            {
+                skipping = !((b_value & a_value) != 0);
+            }
+
+            else if(o == 0x11)
+            {
+                skipping = !((b_value & a_value) == 0);
+            }
+
+            else if(o == 0x12)
+            {
+                skipping = !(b_value == a_value);
+            }
+
+            else if(o == 0x13)
+            {
+                skipping == !(b_value != a_value);
+            }
+
+            else if(o == 0x14)
+            {
+                skipping = !(b_value > a_value);
+            }
+
+            else if(o == 0x15)
+            {
+                skipping = !((int16_t)b_value > (int16_t)a_value);
+            }
+
+            else if(o == 0x16)
+            {
+                skipping = !(b_value < a_value);
+            }
+
+            else if(o == 0x17)
+            {
+                skipping = !((int16_t)b_value < (int16_t)a_value);
+            }
+
+            else if(o == 0x1a)
+            {
+                auto [o1, v1] = overflow_add(b_value, a_value);
+                auto [o2, v2] = overflow_add(v1, regs[EX_REG]);
+
+                uint16_t overflow = o1 || o2;
+
+                set_location(b_location, v2);
+                set_location(ex_location, overflow);
+            }
+
+            // https://www.reddit.com/r/dcpu16/comments/t4uuq/where_is_the_17_spec_with_the_sbx_fix/
+            // https://www.reddit.com/r/dcpu16/comments/t4uuq/where_is_the_17_spec_with_the_sbx_fix/c4jrgkf/
+            else if(o == 0x1b)
+            {
+                int32_t unsigned_a = a_value;
+                int32_t unsigned_b = b_value;
+
+                int32_t intermediate = unsigned_b - unsigned_a;
+
+                int32_t signed_ex = (int16_t)fetch_location(ex_location);
+
+                int32_t result = intermediate + signed_ex;
+
+                bool underflow = result < 0;
+
+                uint16_t fin = a_value + b_value + fetch_location(ex_location);
+
+                set_location(b_location, fin);
+
+                if(underflow)
+                    set_location(ex_location, 0xffff);
+                else
+                    set_location(ex_location, 0);
+            }
+
+            else if(o == 0x1e)
+            {
+                set_location(b_location, a_value);
+
+                regs[I_REG]++;
+                regs[J_REG]++;
+            }
+
+            else if(o == 0x1f)
+            {
+                set_location(b_location, a_value);
+
+                regs[I_REG]--;
+                regs[J_REG]--;
+            }
+
+            else
+            {
+                return true;
+            }
+
+            return false;
+        }
 
         return true;
     }
@@ -207,7 +537,6 @@ int get_word_extra(uint16_t arg)
     return 0;
 }
 
-inline
 constexpr
 int get_instruction_length(uint16_t v)
 {
@@ -237,7 +566,7 @@ int get_instruction_length(uint16_t v)
     }
 }
 
-
+constexpr
 std::optional<location> exec_value_reference(CPU& exec, uint16_t arg, arg_pos::type pos)
 {
     if(arg >= 0 && arg <= 0x07)
