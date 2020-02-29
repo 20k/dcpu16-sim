@@ -541,7 +541,9 @@ struct CPU
                 return true;
         }
 
-        return true;
+        regs[PC_REG] += (uint16_t)get_instruction_length(instr);
+
+        return false;
     }
 };
 
