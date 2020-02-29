@@ -119,10 +119,13 @@ int get_instruction_length(uint16_t v);
 
 struct CPU
 {
-    std::array<uint16_t, MEM_SIZE> mem;
-    std::array<uint16_t, REG_NUM> regs;
+    std::array<uint16_t, MEM_SIZE> mem = {};
+    std::array<uint16_t, REG_NUM> regs = {};
     int32_t cycle_count = 0;
     bool skipping = false;
+
+    constexpr
+    CPU(){}
 
     constexpr
     uint16_t fetch_location(location l)
