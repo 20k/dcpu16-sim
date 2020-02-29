@@ -153,7 +153,19 @@ constexpr void cspr_tests()
 
         static_assert(array_eq(applied, compare_values));
     }
+
+    {
+        auto unsigned_div = [](uint16_t val) -> uint16_t {return val / 53;};
+
+        constexpr auto compare_values = constexpr_apply(test_values, unsigned_div);
+
+        constexpr auto applied = cpu_apply(test_values, 53, 0x06);
+
+        static_assert(array_eq(applied, compare_values));
+    }
 }
+
+#define RTASSERT(x) {if((x) == false){printf("Failed %i %s\n", i, #x); assert(#x && false);}}
 
 void runtime_tests()
 {
@@ -161,11 +173,12 @@ void runtime_tests()
     {
         uint16_t i = idx;
 
-        assert(cpu_func(1, i, 0x02) == (uint16_t)(i + 1));
-        assert(cpu_func(i, 1, 0x03) == (uint16_t)(i - 1));
-        assert(cpu_func(i, 7, 0x04) == (uint16_t)(i * 7));
-        assert(cpu_func(i, 65534, 0x04) == (uint16_t)(i * 65534));
-        assert(cpu_func(i, -5, 0x05) == (uint16_t)(idx * -5));
+        RTASSERT(cpu_func(1, i, 0x02) == (uint16_t)(i + 1));
+        RTASSERT(cpu_func(i, 1, 0x03) == (uint16_t)(i - 1));
+        RTASSERT(cpu_func(i, 7, 0x04) == (uint16_t)(i * 7));
+        RTASSERT(cpu_func(i, 65534, 0x04) == (uint16_t)(i * 65534));
+        RTASSERT(cpu_func(i, -5, 0x05) == (uint16_t)(idx * -5));
+        RTASSERT(cpu_func(i, 5545, 0x06) == (uint16_t)(idx / 5545));
     }
 }
 
