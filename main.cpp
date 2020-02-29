@@ -12,7 +12,7 @@ constexpr uint16_t test_helper()
     return exec.regs[X_REG];
 }
 
-constexpr uint16_t cpu_func(int i, int icode)
+constexpr uint16_t cpu_func(int X, int i, int icode)
 {
     CPU c;
 
@@ -21,6 +21,7 @@ constexpr uint16_t cpu_func(int i, int icode)
 
     c.mem[0] = instr;
     c.mem[1] = cst;
+    c.regs[X_REG] = X;
 
     c.step();
 
@@ -29,13 +30,27 @@ constexpr uint16_t cpu_func(int i, int icode)
 
 template<long long unsigned int N>
 constexpr
-std::array<uint16_t, N> cpu_apply(const std::array<uint16_t, N>& csts, int icode)
+std::array<uint16_t, N> cpu_apply(int X, const std::array<uint16_t, N>& csts, int icode)
 {
     std::array<uint16_t, N> ret = {};
 
     for(int i=0; i < (int)N; i++)
     {
-        ret[i] = cpu_func(csts[i], icode);
+        ret[i] = cpu_func(X, csts[i], icode);
+    }
+
+    return ret;
+}
+
+template<long long unsigned int N>
+constexpr
+std::array<uint16_t, N> cpu_apply(const std::array<uint16_t, N>& csts, int X, int icode)
+{
+    std::array<uint16_t, N> ret = {};
+
+    for(int i=0; i < (int)N; i++)
+    {
+        ret[i] = cpu_func(csts[i], X, icode);
     }
 
     return ret;
@@ -53,14 +68,71 @@ constexpr bool array_eq(const std::array<uint16_t, N>& i1, const std::array<uint
     return true;
 }
 
-constexpr void test_helper3()
+template<typename T>
+constexpr
+std::array<uint16_t, 8> constexpr_apply(const std::array<uint16_t, 8>& in, T func)
 {
-    constexpr std::array<uint16_t, 8> test_values = {0, 0xffff, 1, 2, 0xfffe, 0xfffd, 0x1000, 0x1234};
-    constexpr std::array<uint16_t, 8> compare_values = test_values;
+    std::array<uint16_t, 8> ret = {};
 
-    constexpr std::array<uint16_t, 8> applied = cpu_apply(test_values, 0x1);
+    for(int i=0; i < 8; i++)
+    {
+        ret[i] = func(in[i]);
+    }
 
-    static_assert(array_eq(applied, compare_values));
+    return ret;
+}
+
+constexpr std::array<uint16_t, 8> default_test_values()
+{
+    return {0, 0xffff, 1, 2, 0xfffe, 0xfffd, 0x1000, 0x1234};
+}
+
+constexpr void cspr_tests()
+{
+    constexpr auto test_values = default_test_values();
+
+    {
+        constexpr auto compare_values = test_values;
+
+        constexpr auto applied = cpu_apply(0, test_values, 0x1);
+
+        static_assert(array_eq(applied, compare_values));
+    }
+
+    {
+        constexpr auto compare_values = constexpr_apply(test_values, [](uint16_t in){return in + 1;});
+
+        constexpr auto applied = cpu_apply(1, test_values, 0x02);
+
+        static_assert(array_eq(applied, compare_values));
+    }
+
+    {
+        constexpr auto compare_values = constexpr_apply(test_values, [](uint16_t in){return 1 - in;});
+
+        constexpr auto applied = cpu_apply(1, test_values, 0x03);
+
+        static_assert(array_eq(applied, compare_values));
+    }
+
+    {
+        constexpr auto compare_values = constexpr_apply(test_values, [](uint16_t in){return in - 1;});
+
+        constexpr auto applied = cpu_apply(test_values, 1, 0x03);
+
+        static_assert(array_eq(applied, compare_values));
+    }
+}
+
+void runtime_tests()
+{
+    for(int idx=0; idx < 65536; idx++)
+    {
+        uint16_t i = idx;
+
+        assert(cpu_func(1, i, 0x02) == (uint16_t)(i + 1));
+        assert(cpu_func(i, 1, 0x03) == (uint16_t)(i - 1));
+    }
 }
 
 constexpr
@@ -70,18 +142,9 @@ void constexpr_tests()
     static_assert(val == 10);
 }
 
-void runtime_tests()
-{
-    /*for(int i=0; i < 65536; i++)
-    {
-        uint16_t v1 = test_helper2(i);
-
-        assert(i == v1);
-    }*/
-}
-
 int main()
 {
+    runtime_tests();
     constexpr_tests();
     runtime_tests();
 
