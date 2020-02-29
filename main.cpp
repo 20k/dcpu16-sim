@@ -142,6 +142,17 @@ constexpr void cspr_tests()
 
         static_assert(array_eq(applied, compare_values));
     }
+
+    // not much point testing this, its the upper 16 bits which are apparently different
+    {
+        auto signed_mul = [](int64_t val) -> uint16_t {return val * -5;};
+
+        constexpr auto compare_values = constexpr_apply(test_values, signed_mul);
+
+        constexpr auto applied = cpu_apply(test_values, -5, 0x05);
+
+        static_assert(array_eq(applied, compare_values));
+    }
 }
 
 void runtime_tests()
@@ -152,6 +163,9 @@ void runtime_tests()
 
         assert(cpu_func(1, i, 0x02) == (uint16_t)(i + 1));
         assert(cpu_func(i, 1, 0x03) == (uint16_t)(i - 1));
+        assert(cpu_func(i, 7, 0x04) == (uint16_t)(i * 7));
+        assert(cpu_func(i, 65534, 0x04) == (uint16_t)(i * 65534));
+        assert(cpu_func(i, -5, 0x05) == (uint16_t)(idx * -5));
     }
 }
 
