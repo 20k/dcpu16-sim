@@ -422,7 +422,7 @@ struct CPU
 
             else if(o == 0x13)
             {
-                skipping == !(b_value != a_value);
+                skipping = !(b_value != a_value);
             }
 
             else if(o == 0x14)
@@ -503,6 +503,42 @@ struct CPU
             }
 
             return false;
+        }
+
+        else if(type == instr_type::B)
+        {
+            auto [o, a] = decompose_type_b(instr);
+
+            auto exec_a_opt = exec_value_reference(*this, a, arg_pos::A);
+
+            if(!exec_a_opt.has_value())
+                return true;
+
+            uint16_t a_value = fetch_location(exec_a_opt.value());
+
+            if(o == 0x01)
+            {
+                uint16_t stack_address = regs[SP_REG] - 1;
+
+                regs[SP_REG] = stack_address;
+
+                uint16_t naddr = pc + (uint16_t)get_instruction_length(instr);
+
+                set_location(location::memory{stack_address}, naddr);
+                set_location(location::reg{PC_REG}, a_value);
+            }
+            else
+            {
+                return true;
+            }
+        }
+
+        else if(type == instr_type::C)
+        {
+            auto o = decompose_type_c(instr);
+
+            if(o == 0)
+                return true;
         }
 
         return true;
