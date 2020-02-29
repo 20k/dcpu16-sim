@@ -12,7 +12,7 @@ constexpr uint16_t test_helper()
     return exec.regs[X_REG];
 }
 
-constexpr uint16_t cpu_func(int X, int i, int icode)
+constexpr uint16_t cpu_func(uint16_t X, uint16_t i, uint16_t icode)
 {
     CPU c;
 
@@ -30,7 +30,7 @@ constexpr uint16_t cpu_func(int X, int i, int icode)
 
 template<long long unsigned int N>
 constexpr
-std::array<uint16_t, N> cpu_apply(int X, const std::array<uint16_t, N>& csts, int icode)
+std::array<uint16_t, N> cpu_apply(int X, const std::array<uint16_t, N>& csts, uint16_t icode)
 {
     std::array<uint16_t, N> ret = {};
 
@@ -44,7 +44,7 @@ std::array<uint16_t, N> cpu_apply(int X, const std::array<uint16_t, N>& csts, in
 
 template<long long unsigned int N>
 constexpr
-std::array<uint16_t, N> cpu_apply(const std::array<uint16_t, N>& csts, int X, int icode)
+std::array<uint16_t, N> cpu_apply(const std::array<uint16_t, N>& csts, uint16_t X, uint16_t icode)
 {
     std::array<uint16_t, N> ret = {};
 
@@ -100,7 +100,7 @@ constexpr void cspr_tests()
     }
 
     {
-        constexpr auto compare_values = constexpr_apply(test_values, [](uint16_t in){return in + 1;});
+        constexpr auto compare_values = constexpr_apply(test_values, [](uint16_t in) -> uint16_t {return in + 1;});
 
         constexpr auto applied = cpu_apply(1, test_values, 0x02);
 
@@ -108,7 +108,7 @@ constexpr void cspr_tests()
     }
 
     {
-        constexpr auto compare_values = constexpr_apply(test_values, [](uint16_t in){return 1 - in;});
+        constexpr auto compare_values = constexpr_apply(test_values, [](uint16_t in) -> uint16_t {return 1 - in;});
 
         constexpr auto applied = cpu_apply(1, test_values, 0x03);
 
@@ -116,9 +116,29 @@ constexpr void cspr_tests()
     }
 
     {
-        constexpr auto compare_values = constexpr_apply(test_values, [](uint16_t in){return in - 1;});
+        constexpr auto compare_values = constexpr_apply(test_values, [](uint16_t in) -> uint16_t {return in - 1;});
 
         constexpr auto applied = cpu_apply(test_values, 1, 0x03);
+
+        static_assert(array_eq(applied, compare_values));
+    }
+
+    {
+        constexpr auto compare_values = constexpr_apply(test_values, [](uint16_t in) -> uint16_t {return in * 7;});
+
+        constexpr auto applied = cpu_apply(test_values, 7, 0x04);
+
+        static_assert(array_eq(applied, compare_values));
+    }
+
+    {
+        // Something really weird going on with this lambda, should only need to be uint16_t but overflows
+        // This is only for constructing the result array, so it should be fine
+        auto lambda = [](uint32_t in) -> uint16_t {return in * 65534;};
+
+        constexpr auto compare_values = constexpr_apply(test_values, lambda);
+
+        constexpr auto applied = cpu_apply(test_values, 65534, 0x04);
 
         static_assert(array_eq(applied, compare_values));
     }
