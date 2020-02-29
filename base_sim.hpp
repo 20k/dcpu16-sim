@@ -11,6 +11,12 @@
 #define MEM_SIZE 0x10000
 #define REG_NUM 12
 
+#define A_REG 0
+#define B_REG 1
+#define C_REG 2
+#define X_REG 3
+#define Y_REG 4
+#define Z_REG 5
 #define I_REG 6
 #define J_REG 7
 #define PC_REG 8
