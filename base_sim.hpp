@@ -537,8 +537,11 @@ struct CPU
         {
             auto o = decompose_type_c(instr);
 
+            // BRK
             if(o == 0)
                 return true;
+
+            return true;
         }
 
         regs[PC_REG] += (uint16_t)get_instruction_length(instr);
