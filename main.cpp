@@ -322,7 +322,6 @@ int main()
 {
     runtime_tests();
     constexpr_tests();
-    runtime_tests();
 
     return 0;
 }
