@@ -263,6 +263,13 @@ constexpr void cspr_tests()
 
         static_assert(array_eq(applied, compare_values));
     }
+
+    {
+        constexpr uint16_t m1 = 0xffff;
+        constexpr int16_t m2 = m1;
+
+        static_assert(m2 == -1);
+    }
 }
 
 #define RTASSERT(x) {if((x) == false){printf("Failed %i %s\n", i, #x); assert(#x && false);}}
