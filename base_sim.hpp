@@ -86,6 +86,8 @@ instr_type::type get_type(uint16_t v)
     }
 }
 
+// so
+// in C++ we could use pointers, and a table of constants
 struct location
 {
     struct memory{uint16_t v = 0;};

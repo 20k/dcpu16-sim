@@ -48,8 +48,12 @@
 			<Add option="-Wall" />
 			<Add option="-fexceptions" />
 			<Add option="-std=c++2a" />
+			<Add option="-fopenmp" />
 			<Add directory="deps" />
 		</Compiler>
+		<Linker>
+			<Add option="-lgomp" />
+		</Linker>
 		<Unit filename="base_sim.hpp" />
 		<Unit filename="main.cpp" />
 		<Extensions>
