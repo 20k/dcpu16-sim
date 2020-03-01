@@ -193,6 +193,26 @@ constexpr void cspr_tests()
 
         static_assert(array_eq(applied, compare_values));
     }
+
+    {
+        auto signed_mod = [](int16_t val) -> uint16_t {if(val == 0) {return 0;} return -1723 % val;};
+
+        constexpr auto compare_values = constexpr_apply(test_values, signed_mod);
+
+        constexpr auto applied = cpu_apply(-1723, test_values, 0x09);
+
+        static_assert(array_eq(applied, compare_values));
+    }
+
+    {
+        auto sand = [](uint16_t val) -> uint16_t {return val & 1723;};
+
+        constexpr auto compare_values = constexpr_apply(test_values, sand);
+
+        constexpr auto applied = cpu_apply(test_values, 1723, 0x0a);
+
+        static_assert(array_eq(applied, compare_values));
+    }
 }
 
 #define RTASSERT(x) {if((x) == false){printf("Failed %i %s\n", i, #x); assert(#x && false);}}
@@ -213,6 +233,8 @@ void runtime_tests()
         RTASSERT(cpu_func(i, -14, 0x07) == (uint16_t)(si / -14));
         RTASSERT(cpu_func(i, -14, 0x07) == (uint16_t)(si / -14));
         RTASSERT(cpu_func(i, 1723, 0x08) == (uint16_t)(i % 1723));
+        RTASSERT(cpu_func(i, -1723, 0x09) == (uint16_t)(si % -1723));
+        RTASSERT(cpu_func(i, 1723, 0x0a) == (uint16_t)(i & 1723));
     }
 }
 
