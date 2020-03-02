@@ -281,6 +281,7 @@ void runtime_tests()
         uint16_t i = idx;
         int16_t si = i;
 
+        RTASSERT(cpu_func(1, i, 0x01) == (uint16_t)(i));
         RTASSERT(cpu_func(1, i, 0x02) == (uint16_t)(i + 1));
         RTASSERT(cpu_func(i, 1, 0x03) == (uint16_t)(i - 1));
         RTASSERT(cpu_func(i, 7, 0x04) == (uint16_t)(i * 7));
@@ -306,23 +307,17 @@ void runtime_tests()
         {
             RTASSERT(cpu_func(jidx, i, 0x02) == (uint16_t)(jidx + i));
         }
-
-        if((jidx % 1024) == 0)
-            printf("Jidx %i\n", jidx);
     }
 
-    printf("Validated +");
+    printf("Validated +");*/
 
-    #pragma omp parallel for
+    /*#pragma omp parallel for
     for(int jidx = 0; jidx < 65536; jidx++)
     {
         for(int i = 0; i < 65536; i++)
         {
             RTASSERT(cpu_func(jidx, i, 0x03) == (uint16_t)(jidx - i));
         }
-
-        if((jidx % 1024) == 0)
-            printf("Jidx %i\n", jidx);
     }
 
     printf("Validated -");
@@ -334,9 +329,6 @@ void runtime_tests()
         {
             RTASSERT(cpu_func(jidx, i, 0x04) == (uint16_t)(jidx * i));
         }
-
-        if((jidx % 1024) == 0)
-            printf("Jidx %i\n", jidx);
     }
 
     printf("Validated *");*/

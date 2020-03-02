@@ -23,6 +23,7 @@
 				<Compiler>
 					<Add option="-fexpensive-optimizations" />
 					<Add option="-flto" />
+					<Add option="-O3" />
 				</Compiler>
 				<Linker>
 					<Add option="-O3" />
