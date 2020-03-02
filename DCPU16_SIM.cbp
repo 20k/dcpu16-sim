@@ -12,6 +12,7 @@
 				<Option type="1" />
 				<Option compiler="gcc" />
 				<Compiler>
+					<Add option="-Og" />
 					<Add option="-g" />
 				</Compiler>
 			</Target>
@@ -50,6 +51,7 @@
 			<Add option="-fexceptions" />
 			<Add option="-std=c++2a" />
 			<Add option="-fopenmp" />
+			<Add option="-fconstexpr-ops-limit=42949672965" />
 			<Add directory="deps" />
 		</Compiler>
 		<Linker>

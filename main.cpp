@@ -1,6 +1,26 @@
 #include "base_sim.hpp"
 #include <dcpu16-asm/base_asm.hpp>
 
+#ifdef STATIC_CHECK_UB_DECODER
+constexpr int ub_validate_decoder()
+{
+    auto [binary_opt, err] = assemble("SET X, 10");
+
+    CPU exec;
+    exec.load(binary_opt.value().mem, 0);
+
+    int valid_states = 0;
+
+    for(int i=0; i < 65536; i++)
+    {
+        valid_states += exec_value_reference(exec, i, arg_pos::A).has_value();
+        valid_states += exec_value_reference(exec, i, arg_pos::B).has_value();
+    }
+
+    return valid_states;
+}
+#endif // STATIC_CHECK_UB_DECODER
+
 constexpr uint16_t test_helper()
 {
     auto [binary_opt, err] = assemble("SET X, 10");
@@ -352,6 +372,10 @@ void constexpr_tests()
 {
     constexpr uint16_t val = test_helper();
     static_assert(val == 10);
+
+    #ifdef STATIC_CHECK_UB_DECODER
+    static_assert(ub_validate_decoder() > 0);
+    #endif // STATIC_CHECK_UB_DECODER
 }
 
 int main()
