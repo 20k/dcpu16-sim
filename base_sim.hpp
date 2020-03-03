@@ -125,6 +125,63 @@ inline
 constexpr
 int get_instruction_length(uint16_t v);
 
+inline
+constexpr
+uint16_t get_cycle_time_arg(uint16_t arg)
+{
+    if(arg >= 0x10 && arg <= 0x17)
+        return 1;
+
+    if(arg == 0x1a)
+        return 1;
+
+    if(arg == 0x1e)
+        return 1;
+
+    if(arg == 0x1f)
+        return 1;
+
+    return 0;
+}
+
+inline
+constexpr
+uint16_t get_cycle_time_instr(uint16_t instr)
+{
+    auto type = get_type(instr);
+    uint16_t time = 0;
+
+    if(type == instr_type::A)
+    {
+        auto [o, a, b] = decompose_type_a(instr);
+
+        time += get_cycle_time_arg(a);
+        time += get_cycle_time_arg(b);
+
+        std::array<uint16_t, 32> times = {0, 1, 2, 2, 2, 2, 3, 3, 3, 3, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 0, 0, 3, 3, 0, 0, 2, 2};
+
+        time += times[o];
+    }
+
+    if(type == instr_type::B)
+    {
+        auto [o, a] = decompose_type_b(instr);
+
+        time += get_cycle_time_arg(a);
+
+        std::array<uint16_t, 32> times = {0, 3, 0, 0, 0, 0, 0, 0, 4, 1, 1, 3, 2, 0, 0, 0, 2, 4, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+
+        time += times[o];
+    }
+
+    if(type == instr_type::C)
+    {
+        time = 1;
+    }
+
+    return time;
+}
+
 struct CPU
 {
     std::array<uint16_t, MEM_SIZE> mem = {};
