@@ -71,10 +71,6 @@ instr_type::type get_type(uint16_t v)
 
     if(o == 0)
     {
-        return instr_type::type::B;
-    }
-    else
-    {
         auto [bo, bb] = decompose_type_b(v);
 
         if(bo == 0)
@@ -82,6 +78,10 @@ instr_type::type get_type(uint16_t v)
             return instr_type::type::C;
         }
 
+        return instr_type::type::B;
+    }
+    else
+    {
         return instr_type::type::A;
     }
 }
@@ -148,7 +148,7 @@ inline
 constexpr
 uint16_t get_cycle_time_instr(uint16_t instr)
 {
-    auto type = get_type(instr);
+    instr_type::type type = get_type(instr);
     uint16_t time = 0;
 
     if(type == instr_type::A)

@@ -34,6 +34,17 @@ constexpr uint64_t ub_validate_cycle_time()
 
 #endif // STATIC_CHECK_UB_DECODER
 
+constexpr uint16_t cycle_test()
+{
+    auto [binary_opt, err] = assemble("ADD X, 10");
+
+    CPU exec;
+    exec.load(binary_opt.value().mem, 0);
+    exec.step();
+
+    return exec.next_instruction_cycle;
+}
+
 constexpr uint16_t test_helper()
 {
     auto [binary_opt, err] = assemble("SET X, 10");
@@ -423,12 +434,26 @@ void constexpr_tests()
     static_assert(ub_validate_decoder() > 0);
     static_assert(ub_validate_cycle_time() > 0);
     #endif // STATIC_CHECK_UB_DECODER
+
+    //static_assert(cycle_test() == 2);
 }
 
 int main()
 {
     runtime_tests();
     constexpr_tests();
+
+    uint16_t constructed = construct_type_a(0x02, 0x0, 0x0);
+
+    printf("CTEST %i\n", cycle_test());
+    printf("ctime %i\n", get_cycle_time_instr(constructed));
+
+    auto [o, a, b] = decompose_type_a(constructed);
+
+    std::array<uint16_t, 32> times = {0, 1, 2, 2, 2, 2, 3, 3, 3, 3, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 0, 0, 3, 3, 0, 0, 2, 2};
+
+    printf("TIMES %i\n", times[o]);
+    printf("TYPE %i o %i\n", get_type(constructed), o);
 
     return 0;
 }
