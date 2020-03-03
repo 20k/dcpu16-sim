@@ -19,6 +19,19 @@ constexpr int ub_validate_decoder()
 
     return valid_states;
 }
+
+constexpr uint64_t ub_validate_cycle_time()
+{
+    uint64_t v = 0;
+
+    for(int i=0; i < 65536; i++)
+    {
+        v += get_cycle_time_instr(i);
+    }
+
+    return v;
+}
+
 #endif // STATIC_CHECK_UB_DECODER
 
 constexpr uint16_t test_helper()
@@ -375,6 +388,7 @@ void constexpr_tests()
 
     #ifdef STATIC_CHECK_UB_DECODER
     static_assert(ub_validate_decoder() > 0);
+    static_assert(ub_validate_cycle_time() > 0);
     #endif // STATIC_CHECK_UB_DECODER
 }
 
