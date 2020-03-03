@@ -186,7 +186,8 @@ struct CPU
 {
     std::array<uint16_t, MEM_SIZE> mem = {};
     std::array<uint16_t, REG_NUM> regs = {};
-    int32_t cycle_count = 0;
+    uint16_t cycle_count = 0;
+    uint16_t next_instruction_cycle = 0;
     bool skipping = false;
 
     constexpr
@@ -265,6 +266,7 @@ struct CPU
                 if(skipping)
                 {
                     regs[PC_REG] += get_instruction_length(instr);
+                    next_instruction_cycle++;
                     return false;
                 }
             }
@@ -276,6 +278,8 @@ struct CPU
                 return false;
             }
         }
+
+        next_instruction_cycle += get_cycle_time_instr(instr);
 
         instr_type::type type = get_type(instr);
 
@@ -615,6 +619,20 @@ struct CPU
         regs[PC_REG] += (uint16_t)get_instruction_length(instr);
 
         return false;
+    }
+
+    constexpr
+    bool cycle_step()
+    {
+        bool res = false;
+
+        if(cycle_count == next_instruction_cycle)
+        {
+            res = step();
+        }
+
+        cycle_count++;
+        return res;
     }
 };
 
