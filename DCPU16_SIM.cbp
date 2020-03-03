@@ -72,6 +72,7 @@
 			<Add option="-lgomp" />
 		</Linker>
 		<Unit filename="base_sim.hpp" />
+		<Unit filename="deps/dcpu16-asm/base_asm.hpp" />
 		<Unit filename="main.cpp" />
 		<Extensions>
 			<code_completion />

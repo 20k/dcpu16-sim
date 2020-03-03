@@ -331,6 +331,17 @@ constexpr void cspr_tests()
 
 void runtime_tests()
 {
+    for(int i=0; i < 0x1f; i++)
+    {
+        if(i != 0)
+        {
+            RTASSERT(get_type(construct_type_a(i, 0, 0)) == instr_type::A);
+            RTASSERT(get_type(construct_type_b(i, 0)) == instr_type::B);
+        }
+
+        RTASSERT(get_type(construct_type_c(i)) == instr_type::C);
+    }
+
     for(int idx=0; idx < 65536; idx++)
     {
         uint16_t i = idx;
