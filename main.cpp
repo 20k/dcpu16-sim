@@ -333,6 +333,39 @@ void runtime_tests()
         RTASSERT(cpu_func(i, 12, 0x0f) == (uint16_t)(i << 12));
     }
 
+    #ifdef LONG
+    // All passed
+    for(int jidx = 0; jidx < 65536; jidx++)
+    {
+        uint16_t j = jidx;
+        int16_t sj = jidx;
+
+        for(int idx=0; idx < 65536; idx++)
+        {
+            uint16_t i = idx;
+            int16_t si = i;
+
+            RTASSERT(cpu_func(j, i, 0x01) == (uint16_t)(i));
+            RTASSERT(cpu_func(j, i, 0x02) == (uint16_t)(i + j));
+            RTASSERT(cpu_func(i, j, 0x03) == (uint16_t)(i - j));
+            RTASSERT(cpu_func(i, j, 0x04) == (uint16_t)(i * j));
+            RTASSERT(cpu_func(i, j, 0x04) == (uint16_t)(i * j));
+            RTASSERT(cpu_func(i, j, 0x05) == (uint16_t)(si * j));
+            RTASSERT(cpu_func(i, j, 0x06) == (uint16_t)((j == 0) ? 0 : i / j));
+            RTASSERT(cpu_func(i, j, 0x07) == (uint16_t)((sj == 0) ? 0 : si / sj));
+            RTASSERT(cpu_func(i, j, 0x07) == (uint16_t)(sj == 0 ? 0 : si / sj));
+            RTASSERT(cpu_func(i, j, 0x08) == (uint16_t)(j == 0 ? 0 : i % j));
+            RTASSERT(cpu_func(i, j, 0x09) == (uint16_t)(sj == 0 ? 0 : si % sj));
+            RTASSERT(cpu_func(i, j, 0x0a) == (uint16_t)(i & j));
+            RTASSERT(cpu_func(i, j, 0x0b) == (uint16_t)(i | j));
+            RTASSERT(cpu_func(i, j, 0x0c) == (uint16_t)(i ^ j));
+            RTASSERT(cpu_func(i, j, 0x0d) == (uint16_t)(i >> j));
+            RTASSERT(cpu_func(i, j, 0x0e) == (uint16_t)(si >> j));
+            RTASSERT(cpu_func(i, j, 0x0f) == (uint16_t)(i << j));
+        }
+    }
+    #endif // LONG
+
     #ifdef SELF_TEST
     #pragma omp parallel for
     for(int jidx = 0; jidx < 65536; jidx++)
