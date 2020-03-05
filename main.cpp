@@ -13,8 +13,8 @@ constexpr int ub_validate_decoder()
 
     for(int i=0; i < 65536; i++)
     {
-        valid_states += exec_value_reference(exec, i, arg_pos::A).has_value();
-        valid_states += exec_value_reference(exec, i, arg_pos::B).has_value();
+        valid_states += exec_value_reference(exec, 0, i, arg_pos::A).has_value();
+        valid_states += exec_value_reference(exec, 0, i, arg_pos::B).has_value();
     }
 
     return valid_states;
