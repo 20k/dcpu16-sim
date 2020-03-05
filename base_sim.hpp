@@ -10,6 +10,7 @@
 
 #define MEM_SIZE 0x10000
 #define REG_NUM 12
+#define MAX_INTERRUPTS 256
 
 #define A_REG 0
 #define B_REG 1
@@ -119,7 +120,7 @@ std::pair<bool, uint16_t> overflow_add(uint16_t v1, uint16_t v2)
 struct CPU;
 
 constexpr
-std::optional<location> exec_value_reference(CPU& exec, uint16_t arg, arg_pos::type pos);
+std::optional<location> exec_value_reference(CPU& exec, uint16_t instruction_location, uint16_t arg, arg_pos::type pos);
 
 inline
 constexpr
@@ -143,6 +144,14 @@ uint16_t get_cycle_time_arg(uint16_t arg)
 
     return 0;
 }
+
+struct interrupt_type
+{
+    uint16_t is_software = 0;
+    uint16_t message = 0;
+
+    constexpr interrupt_type(){}
+};
 
 inline
 constexpr
@@ -182,10 +191,58 @@ uint16_t get_cycle_time_instr(uint16_t instr)
     return time;
 }
 
+template<typename T, long long unsigned int N>
+struct stack_ring
+{
+    std::array<T, N> mem;
+    uint16_t start = 0;
+    uint16_t fin = 0;
+
+    constexpr
+    stack_ring(){}
+
+    constexpr
+    bool push_back(T in)
+    {
+        uint16_t udiff = fin - start;
+
+        if(udiff > N)
+            return false;
+
+        uint16_t cirq = fin % N;
+
+        mem[cirq] = in;
+
+        fin++;
+
+        return true;
+    }
+
+    constexpr
+    T pop_front()
+    {
+        T val = mem[start % N];
+
+        start++;
+
+        return val;
+    }
+
+    constexpr
+    uint16_t size()
+    {
+        return (fin - start);
+    }
+};
+
 struct CPU
 {
     std::array<uint16_t, MEM_SIZE> mem = {};
     std::array<uint16_t, REG_NUM> regs = {};
+
+    stack_ring<interrupt_type, MAX_INTERRUPTS> interrupts;
+
+    uint16_t interrupt_dequeueing_enabled = 0;
     uint16_t cycle_count = 0;
     uint16_t next_instruction_cycle = 0;
     bool skipping = false;
@@ -255,8 +312,10 @@ struct CPU
     constexpr
     bool step()
     {
-        uint16_t pc = regs[PC_REG];
-        uint16_t instr = mem[pc];
+        uint16_t instruction_location = regs[PC_REG];
+        uint16_t instr = mem[instruction_location];
+
+        regs[PC_REG] += (uint16_t)get_instruction_length(instr);
 
         {
             auto [o, a, b] = decompose_type_a(instr);
@@ -265,7 +324,6 @@ struct CPU
             {
                 if(skipping)
                 {
-                    regs[PC_REG] += get_instruction_length(instr);
                     next_instruction_cycle++;
                     return false;
                 }
@@ -274,7 +332,6 @@ struct CPU
             if(skipping)
             {
                 skipping = false;
-                regs[PC_REG] += get_instruction_length(instr);
                 return false;
             }
         }
@@ -287,8 +344,8 @@ struct CPU
         {
             auto [o, a, b] = decompose_type_a(instr);
 
-            auto exec_a_opt = exec_value_reference(*this, a, arg_pos::A);
-            auto exec_b_opt = exec_value_reference(*this, b, arg_pos::B);
+            auto exec_a_opt = exec_value_reference(*this, instruction_location, a, arg_pos::A);
+            auto exec_b_opt = exec_value_reference(*this, instruction_location, b, arg_pos::B);
 
             if(!exec_a_opt.has_value())
             {
@@ -581,10 +638,12 @@ struct CPU
         {
             auto [o, a] = decompose_type_b(instr);
 
-            auto exec_a_opt = exec_value_reference(*this, a, arg_pos::A);
+            auto exec_a_opt = exec_value_reference(*this, instruction_location, a, arg_pos::A);
 
             if(!exec_a_opt.has_value())
                 return true;
+
+            location a_location = exec_a_opt.value();
 
             uint16_t a_value = fetch_location(exec_a_opt.value());
 
@@ -594,11 +653,64 @@ struct CPU
 
                 regs[SP_REG] = stack_address;
 
-                uint16_t naddr = pc + (uint16_t)get_instruction_length(instr);
+                uint16_t naddr = instruction_location + (uint16_t)get_instruction_length(instr);
 
                 set_location(location::memory{stack_address}, naddr);
                 set_location(location::reg{PC_REG}, a_value);
             }
+
+            else if(o == 0x08)
+            {
+                interrupt_type type;
+                type.is_software = 1;
+                type.message = a_value;
+
+                // HCF
+                if(interrupts.size() > 256)
+                    return true;
+
+                interrupts.push_back(type);
+            }
+
+            else if(o == 0x09)
+            {
+                uint16_t IA_val = regs[IA_REG];
+
+                set_location(a_location, IA_val);
+            }
+
+            else if(o == 0x0a)
+            {
+                set_location(location::reg{IA_REG}, a_value);
+            }
+
+            else if(o == 0x0b)
+            {
+                interrupt_dequeueing_enabled = 1;
+
+                uint16_t reg_A_val = mem[regs[SP_REG]++];
+                uint16_t reg_PC_val = mem[regs[SP_REG]++];
+
+                regs[A_REG] = reg_A_val;
+                regs[PC_REG] = reg_PC_val;
+            }
+
+            else if(o == 0x0c)
+            {
+                uint16_t last_val = interrupt_dequeueing_enabled;
+
+                if(a_value != 0)
+                {
+                    interrupt_dequeueing_enabled = 0;
+                }
+                else
+                {
+                    interrupt_dequeueing_enabled = 1;
+                }
+
+                set_location(a_location, last_val);
+            }
+
             else
             {
                 return true;
@@ -616,7 +728,8 @@ struct CPU
             return true;
         }
 
-        regs[PC_REG] += (uint16_t)get_instruction_length(instr);
+
+        // EXECUTE INTERRUPTS
 
         return false;
     }
@@ -694,7 +807,7 @@ int get_instruction_length(uint16_t v)
 }
 
 constexpr
-std::optional<location> exec_value_reference(CPU& exec, uint16_t arg, arg_pos::type pos)
+std::optional<location> exec_value_reference(CPU& exec, uint16_t instruction_location, uint16_t arg, arg_pos::type pos)
 {
     if(arg >= 0 && arg <= 0x07)
     {
@@ -710,7 +823,7 @@ std::optional<location> exec_value_reference(CPU& exec, uint16_t arg, arg_pos::t
         return location::memory{exec.fetch_location(location::memory{reg_value})};
     }
 
-    uint16_t current_instruction = exec.index(exec.fetch_location(location::reg{PC_REG}));
+    uint16_t current_instruction = exec.index(instruction_location);
 
     uint16_t next_word_location = 0;
 
@@ -735,7 +848,7 @@ std::optional<location> exec_value_reference(CPU& exec, uint16_t arg, arg_pos::t
     {
         uint16_t reg_offset = arg - 0x10;
 
-        uint16_t immediate_value = exec.index(exec.fetch_location(location::reg{PC_REG}) + next_word_location);
+        uint16_t immediate_value = exec.index(instruction_location + next_word_location);
         uint16_t reg_wrap_value = exec.fetch_location(location::reg{reg_offset});
 
         uint16_t fin = immediate_value + reg_wrap_value;
@@ -771,7 +884,7 @@ std::optional<location> exec_value_reference(CPU& exec, uint16_t arg, arg_pos::t
 
     if(arg == 0x1a)
     {
-        uint16_t immediate = exec.index(exec.fetch_location(location::reg{PC_REG}) + next_word_location);
+        uint16_t immediate = exec.index(instruction_location + next_word_location);
         uint16_t reg_value = exec.fetch_location(location::reg{SP_REG});
 
         uint16_t added = immediate + reg_value;
@@ -796,13 +909,13 @@ std::optional<location> exec_value_reference(CPU& exec, uint16_t arg, arg_pos::t
 
     if(arg == 0x1e)
     {
-        uint16_t immediate_value = exec.index(exec.fetch_location(location::reg{PC_REG}) + next_word_location);
+        uint16_t immediate_value = exec.index(instruction_location + next_word_location);
         return location::memory{immediate_value};
     }
 
     if(arg == 0x1f)
     {
-        uint16_t immediate_value = exec.index(exec.fetch_location(location::reg{PC_REG}) + next_word_location);
+        uint16_t immediate_value = exec.index(instruction_location + next_word_location);
 
         return location::constant{immediate_value};
     }
