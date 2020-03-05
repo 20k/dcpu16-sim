@@ -659,6 +659,7 @@ struct CPU
                 set_location(location::reg{PC_REG}, a_value);
             }
 
+            // INT
             else if(o == 0x08)
             {
                 interrupt_type type;
@@ -672,6 +673,7 @@ struct CPU
                 interrupts.push_back(type);
             }
 
+            // IAG
             else if(o == 0x09)
             {
                 uint16_t IA_val = regs[IA_REG];
@@ -679,11 +681,13 @@ struct CPU
                 set_location(a_location, IA_val);
             }
 
+            // IAS
             else if(o == 0x0a)
             {
                 set_location(location::reg{IA_REG}, a_value);
             }
 
+            // RFI
             else if(o == 0x0b)
             {
                 interrupt_dequeueing_enabled = 1;
@@ -695,6 +699,7 @@ struct CPU
                 regs[PC_REG] = reg_PC_val;
             }
 
+            // IAQ
             else if(o == 0x0c)
             {
                 uint16_t last_val = interrupt_dequeueing_enabled;
@@ -709,6 +714,41 @@ struct CPU
                 }
 
                 set_location(a_location, last_val);
+            }
+
+            // HWN
+            else if(o == 0x10)
+            {
+                // HARDWARE DEVICES NOT SUPPORTED YET
+                set_location(a_location, 0);
+            }
+
+            // HWQ
+            else if(o == 0x11)
+            {
+                uint32_t HID = 0;
+                uint32_t MID = 0;
+                uint32_t VERSION = 0;
+
+                uint16_t lid = HID >> 16;
+                uint16_t vid = HID & 0xffff;
+
+                uint16_t lmid = MID >> 16;
+                uint16_t vmid = MID & 0xffff;
+
+                set_location(location::reg{A_REG}, vid);
+                set_location(location::reg{B_REG}, lid);
+
+                set_location(location::reg{C_REG}, VERSION);
+
+                set_location(location::reg{X_REG}, vmid);
+                set_location(location::reg{Y_REG}, lmid);
+            }
+
+            // HWI
+            else if(o == 0x12)
+            {
+
             }
 
             else
