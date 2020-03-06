@@ -228,6 +228,11 @@ struct stack_ring
         return val;
     }
 
+    void clear()
+    {
+        fin = start;
+    }
+
     constexpr
     uint16_t size()
     {
@@ -307,6 +312,12 @@ struct CPU
     uint16_t index(uint16_t in)
     {
         return mem[in];
+    }
+
+    constexpr
+    bool can_add_interrupts()
+    {
+        return fetch_location(location::reg{IA_REG}) == 0;
     }
 
     constexpr
@@ -670,7 +681,10 @@ struct CPU
                 if(interrupts.size() > 256)
                     return true;
 
-                interrupts.push_back(type);
+                if(can_add_interrupts())
+                {
+                    interrupts.push_back(type);
+                }
             }
 
             // IAG
@@ -685,6 +699,14 @@ struct CPU
             else if(o == 0x0a)
             {
                 set_location(location::reg{IA_REG}, a_value);
+
+                // https://raw.githubusercontent.com/jonpovey/das/irq-spec/dcpu-16.txt
+                // Whenever IA == 0, queue is empty
+                // This is the only way IA can be set to 0
+                if(a_value == 0)
+                {
+                    interrupts.clear();
+                }
             }
 
             // RFI
@@ -768,10 +790,35 @@ struct CPU
             return true;
         }
 
-
         // EXECUTE INTERRUPTS
+        if(interrupt_dequeueing_enabled && fetch_location(location::reg{IA_REG}) != 0 && interrupts.size() > 0)
+        {
+            interrupt_dequeueing_enabled = 0;
+
+            interrupt_type next = interrupts.pop_front();
+
+            push_stack_value(regs[PC_REG]);
+            push_stack_value(regs[A_REG]);
+
+            regs[PC_REG] = regs[IA_REG];
+            regs[A_REG] = next.message;
+        }
 
         return false;
+    }
+
+    void push_stack_value(uint16_t val)
+    {
+        regs[SP_REG]--;
+        mem[regs[SP_REG]] = val;
+    }
+
+    uint16_t pop_stack_value()
+    {
+        uint16_t last = mem[regs[SP_REG]];
+        regs[SP_REG]++;
+
+        return last;
     }
 
     constexpr
