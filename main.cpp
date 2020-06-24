@@ -1,5 +1,6 @@
 #include "base_sim.hpp"
 #include <dcpu16-asm/base_asm.hpp>
+#include <stdio.h>
 
 #ifdef STATIC_CHECK_UB_DECODER
 constexpr int ub_validate_decoder()

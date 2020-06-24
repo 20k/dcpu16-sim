@@ -7,6 +7,7 @@
 #include <dcpu16-asm/stack_vector.hpp>
 #include <dcpu16-asm/shared.hpp>
 #include <optional>
+#include <stdint.h>
 
 #define MEM_SIZE 0x10000
 #define REG_NUM 12

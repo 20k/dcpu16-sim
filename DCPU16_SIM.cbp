@@ -63,8 +63,7 @@
 		<Compiler>
 			<Add option="-Wall" />
 			<Add option="-fexceptions" />
-			<Add option="-std=c++2a" />
-			<Add option="-fopenmp" />
+			<Add option="-std=c++20" />
 			<Add option="-fconstexpr-ops-limit=42949672965" />
 			<Add directory="deps" />
 		</Compiler>
@@ -75,10 +74,6 @@
 		<Unit filename="deps/dcpu16-asm/base_asm.hpp" />
 		<Unit filename="main.cpp" />
 		<Extensions>
-			<code_completion />
-			<envvars />
-			<debugger />
-			<fortran_project />
 			<lib_finder disable_auto="1" />
 		</Extensions>
 	</Project>
