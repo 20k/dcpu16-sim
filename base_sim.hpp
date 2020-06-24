@@ -8,6 +8,7 @@
 #include <dcpu16-asm/shared.hpp>
 #include <optional>
 #include <stdint.h>
+#include <vector>
 
 #define MEM_SIZE 0x10000
 #define REG_NUM 12
@@ -179,7 +180,7 @@ uint16_t get_cycle_time_instr(uint16_t instr)
 
         time += get_cycle_time_arg(a);
 
-        std::array<uint16_t, 32> times = {0, 3, 0, 0, 0, 0, 0, 0, 4, 1, 1, 3, 2, 0, 0, 0, 2, 4, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+        std::array<uint16_t, 32> times = {0, 3, 0, 0, 0, 0, 0, 0, 4, 1, 1, 3, 2, 0, 0, 0, 2, 4, 4, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0};
 
         time += times[o];
     }
@@ -837,6 +838,10 @@ struct CPU
     }
 };
 
+struct execution_context
+{
+    std::vector<CPU> cpus;
+};
 
 inline
 constexpr
