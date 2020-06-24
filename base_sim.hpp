@@ -9,6 +9,7 @@
 #include <optional>
 #include <stdint.h>
 #include <vector>
+#include "execution_context.hpp"
 
 #define MEM_SIZE 0x10000
 #define REG_NUM 12
@@ -323,7 +324,7 @@ struct CPU
     }
 
     constexpr
-    bool step()
+    bool step(execution_context<CPU>& context)
     {
         uint16_t instruction_location = regs[PC_REG];
         uint16_t instr = mem[instruction_location];
@@ -824,23 +825,18 @@ struct CPU
     }
 
     constexpr
-    bool cycle_step()
+    bool cycle_step(execution_context<CPU>& context)
     {
         bool res = false;
 
         if(cycle_count == next_instruction_cycle)
         {
-            res = step();
+            res = step(context);
         }
 
         cycle_count++;
         return res;
     }
-};
-
-struct execution_context
-{
-    std::vector<CPU> cpus;
 };
 
 inline
