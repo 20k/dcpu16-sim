@@ -1,6 +1,5 @@
 #include "base_sim.hpp"
 #include <dcpu16-asm/base_asm.hpp>
-#include "execution_context.hpp"
 #include <stdio.h>
 
 #ifdef STATIC_CHECK_UB_DECODER
@@ -40,11 +39,11 @@ constexpr uint16_t cycle_test()
 {
     auto [binary_opt, err] = assemble("ADD X, 10");
 
-    execution_context<CPU> context;
+    stack_vector<CPU, 64> cpus;
+    CPU& exec = cpus.emplace_back();
 
-    CPU exec;
     exec.load(binary_opt.value().mem, 0);
-    exec.step(context);
+    exec.step(cpus);
 
     return exec.next_instruction_cycle;
 }
@@ -53,11 +52,11 @@ constexpr uint16_t cycle_test2()
 {
     auto [binary_opt, err] = assemble("ADD X, 9999");
 
-    execution_context<CPU> context;
+    stack_vector<CPU, 64> cpus;
+    CPU& exec = cpus.emplace_back();
 
-    CPU exec;
     exec.load(binary_opt.value().mem, 0);
-    exec.step(context);
+    exec.step(cpus);
 
     return exec.next_instruction_cycle;
 }
@@ -66,20 +65,19 @@ constexpr uint16_t test_helper()
 {
     auto [binary_opt, err] = assemble("SET X, 10");
 
-    execution_context<CPU> context;
+    stack_vector<CPU, 64> cpus;
+    CPU& exec = cpus.emplace_back();
 
-    CPU exec;
     exec.load(binary_opt.value().mem, 0);
-    exec.step(context);
+    exec.step(cpus);
 
     return exec.regs[X_REG];
 }
 
 constexpr uint16_t cpu_func(uint16_t X, uint16_t i, uint16_t icode)
 {
-    execution_context<CPU> context;
-
-    CPU c;
+    stack_vector<CPU, 64> cpus;
+    CPU& c = cpus.emplace_back();
 
     uint16_t instr = construct_type_a(icode, 0x1f, X_REG);
     uint16_t cst = i;
@@ -88,7 +86,7 @@ constexpr uint16_t cpu_func(uint16_t X, uint16_t i, uint16_t icode)
     c.mem[1] = cst;
     c.regs[X_REG] = X;
 
-    c.step(context);
+    c.step(cpus);
 
     return c.regs[X_REG];
 }
@@ -471,6 +469,7 @@ void constexpr_tests()
     static_assert(cycle_test2() == 3);
 }
 
+//i love poopoo
 int main()
 {
     runtime_tests();

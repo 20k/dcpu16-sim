@@ -9,7 +9,7 @@
 #include <optional>
 #include <stdint.h>
 #include <vector>
-#include "execution_context.hpp"
+#include <optional>
 
 #define MEM_SIZE 0x10000
 #define REG_NUM 12
@@ -247,6 +247,7 @@ struct CPU
 {
     std::array<uint16_t, MEM_SIZE> mem = {};
     std::array<uint16_t, REG_NUM> regs = {};
+    std::optional<std::pair<uint16_t, uint16_t>> presented_value; ///pass a message to another piece of hardware
 
     stack_ring<interrupt_type, MAX_INTERRUPTS> interrupts;
 
@@ -324,7 +325,7 @@ struct CPU
     }
 
     constexpr
-    bool step(execution_context<CPU>& context)
+    bool step(stack_vector<CPU, 64>& context)
     {
         uint16_t instruction_location = regs[PC_REG];
         uint16_t instr = mem[instruction_location];
@@ -825,7 +826,7 @@ struct CPU
     }
 
     constexpr
-    bool cycle_step(execution_context<CPU>& context)
+    bool cycle_step(stack_vector<CPU, 64>& context)
     {
         bool res = false;
 
