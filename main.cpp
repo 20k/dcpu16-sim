@@ -90,9 +90,9 @@ constexpr uint16_t cpu_func(uint16_t X, uint16_t i, uint16_t icode)
 constexpr uint16_t multiprocess_1()
 {
     auto [binary_opt, err] = assemble("SET X, 10\nSND X, 1");
-    auto [binary_opt2, err2] = assemble("RCV Y, 1");
+    auto [binary_opt2, err2] = assemble("RCV Y, 0");
 
-    stack_vector<CPU, 64> cpus;
+    stack_vector<CPU, 4> cpus;
     CPU& c1 = cpus.emplace_back();
     CPU& c2 = cpus.emplace_back();
 
@@ -108,8 +108,12 @@ constexpr uint16_t multiprocess_1()
     return c2.fetch_location(location::reg{Y_REG});
 }
 
-constexpr void multiprocessor_tests()
+void multiprocessor_tests()
 {
+    uint16_t val = multiprocess_1();
+
+    printf("%i val\n", val);
+
     //static_assert(multiprocess_1() == 10);
 }
 
@@ -491,11 +495,11 @@ void constexpr_tests()
     static_assert(cycle_test2() == 3);
 }
 
-//i love poopoo
 int main()
 {
-    runtime_tests();
-    constexpr_tests();
+    //runtime_tests();
+    //constexpr_tests();
+    multiprocessor_tests();
 
     return 0;
 }

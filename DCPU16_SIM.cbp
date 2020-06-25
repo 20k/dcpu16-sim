@@ -21,14 +21,8 @@
 				<Option object_output="obj/Release/" />
 				<Option type="1" />
 				<Option compiler="gcc" />
-				<Compiler>
-					<Add option="-fexpensive-optimizations" />
-					<Add option="-flto" />
-					<Add option="-O3" />
-				</Compiler>
 				<Linker>
-					<Add option="-O3" />
-					<Add option="-flto" />
+					<Add option="-O2" />
 					<Add option="-s" />
 				</Linker>
 			</Target>
@@ -62,13 +56,13 @@
 		</Build>
 		<Compiler>
 			<Add option="-Wall" />
-			<Add option="-fexceptions" />
 			<Add option="-std=c++20" />
+			<Add option="-fexceptions" />
 			<Add option="-fconstexpr-ops-limit=42949672965" />
 			<Add directory="deps" />
 		</Compiler>
 		<Linker>
-			<Add option="-lgomp" />
+			<Add option="]]" />
 		</Linker>
 		<Unit filename="base_sim.hpp" />
 		<Unit filename="deps/dcpu16-asm/base_asm.hpp" />
