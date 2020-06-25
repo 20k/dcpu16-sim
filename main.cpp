@@ -87,6 +87,32 @@ constexpr uint16_t cpu_func(uint16_t X, uint16_t i, uint16_t icode)
     return c.regs[X_REG];
 }
 
+constexpr uint16_t multiprocess_1()
+{
+    auto [binary_opt, err] = assemble("SET X, 10\nSND X, 1");
+    auto [binary_opt2, err2] = assemble("RCV Y, 1");
+
+    stack_vector<CPU, 64> cpus;
+    CPU& c1 = cpus.emplace_back();
+    CPU& c2 = cpus.emplace_back();
+
+    c1.hwid = 0;
+    c2.hwid = 1;
+
+    c1.load(binary_opt.value().mem, 0);
+    c2.load(binary_opt2.value().mem, 0);
+
+    step_all(cpus);
+    step_all(cpus);
+
+    return c2.fetch_location(location::reg{Y_REG});
+}
+
+constexpr void multiprocessor_tests()
+{
+    //static_assert(multiprocess_1() == 10);
+}
+
 template<long long unsigned int N>
 constexpr
 std::array<uint16_t, N> cpu_apply(int X, const std::array<uint16_t, N>& csts, uint16_t icode)

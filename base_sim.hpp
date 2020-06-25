@@ -9,7 +9,7 @@
 #include <optional>
 #include <stdint.h>
 #include <vector>
-#include <optional>
+#include <tuple>
 
 #define MEM_SIZE 0x10000
 #define REG_NUM 12
@@ -248,10 +248,10 @@ struct CPU
     std::array<uint16_t, MEM_SIZE> mem = {};
     std::array<uint16_t, REG_NUM> regs = {};
 
-    std::optional<std::pair<uint16_t, uint16_t>> presented_value; ///pass a message to another piece of hardware
-    std::optional<std::pair<uint16_t, location>> waiting_location; ///waiting to receive a message from a piece of hardware
-    std::array<bool, 65536> pending_writes;
-    std::array<bool, 65536> pending_reads;
+    std::tuple<bool, uint16_t, uint16_t> presented_value = {false, 0, 0}; ///pass a message to another piece of hardware
+    std::tuple<bool, uint16_t, location> waiting_location = {false, 0, location::reg{X_REG}}; ///waiting to receive a message from a piece of hardware
+    std::array<bool, 65536> pending_writes = {};
+    std::array<bool, 65536> pending_reads = {};
 
     stack_ring<interrupt_type, MAX_INTERRUPTS> interrupts;
 
@@ -335,10 +335,10 @@ struct CPU
     constexpr
     bool step()
     {
-        if(presented_value.has_value())
+        if(std::get<0>(presented_value))
             return false;
 
-        if(waiting_location.has_value())
+        if(std::get<0>(waiting_location))
             return false;
 
         uint16_t instruction_location = regs[PC_REG];
@@ -658,12 +658,12 @@ struct CPU
             else if(o == 0x1c)
             {
                 ///a value is hwid, b value is value
-                presented_value = {a_value, b_value};
+                presented_value = {true, a_value, b_value};
             }
 
             else if(o == 0x1d)
             {
-                waiting_location = {hwid, b_location};
+                waiting_location = {true, hwid, b_location};
             }
 
             else if(o == 0x1e)
@@ -904,15 +904,15 @@ void resolve_interprocessor_communication(stack_vector<CPU, N>& in)
             CPU& c2 = in[j];
 
             ///both optionals filled
-            if(c1.presented_value.has_value() && c2.waiting_location.has_value())
+            if(std::get<0>(c1.presented_value) && std::get<0>(c2.waiting_location))
             {
                 ///the value being presented is to the receiving hardware, and the receiving hardware is waiting from a value from the sending device
-                if(c1.presented_value.value().first == c2.hwid && c2.waiting_location.value().first == c1.hwid)
+                if(std::get<1>(c1.presented_value) == c2.hwid && std::get<1>(c2.waiting_location) == c1.hwid)
                 {
-                    c2.set_location(c2.waiting_location.value().second, c1.presented_value.value().second);
+                    c2.set_location(std::get<2>(c2.waiting_location), std::get<2>(c1.presented_value));
 
-                    c1.presented_value = std::nullopt;
-                    c2.waiting_location = std::nullopt;
+                    std::get<0>(c1.presented_value) = false;
+                    std::get<0>(c2.waiting_location) = false;
                 }
             }
         }
@@ -926,7 +926,7 @@ void resolve_interprocessor_communication(stack_vector<CPU, N>& in)
         {
             CPU& c2 = in[j];
 
-            c2.pending_writes[c1.hwid] = c1.presented_value.has_value() && c2.hwid == c1.presented_value.value().first;
+            c2.pending_writes[c1.hwid] = std::get<0>(c1.presented_value) && c2.hwid == std::get<1>(c1.presented_value);
         }
     }
 
@@ -938,9 +938,21 @@ void resolve_interprocessor_communication(stack_vector<CPU, N>& in)
         {
             CPU& c2 = in[j];
 
-            c2.pending_reads[c1.hwid] = c1.waiting_location.has_value() && c2.hwid == c1.waiting_location.value().first;
+            c2.pending_reads[c1.hwid] = std::get<0>(c1.waiting_location) && c2.hwid == std::get<1>(c1.waiting_location);
         }
     }
+}
+
+template<int N>
+constexpr
+void step_all(stack_vector<CPU, N>& in)
+{
+    for(int i=0; i < (int)in.size(); i++)
+    {
+        in[i].step();
+    }
+
+    resolve_interprocessor_communication(in);
 }
 
 inline
