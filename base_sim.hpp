@@ -247,7 +247,9 @@ struct CPU
 {
     std::array<uint16_t, MEM_SIZE> mem = {};
     std::array<uint16_t, REG_NUM> regs = {};
+
     std::optional<std::pair<uint16_t, uint16_t>> presented_value; ///pass a message to another piece of hardware
+    std::optional<std::pair<uint16_t, location>> waiting_location; ///waiting to receive a message from a piece of hardware
 
     stack_ring<interrupt_type, MAX_INTERRUPTS> interrupts;
 
@@ -255,6 +257,10 @@ struct CPU
     uint16_t cycle_count = 0;
     uint16_t next_instruction_cycle = 0;
     bool skipping = false;
+    uint16_t hwid = -1;
+
+    constexpr
+    CPU(uint16_t _hwid){hwid = _hwid;}
 
     constexpr
     CPU(){}
@@ -327,6 +333,12 @@ struct CPU
     constexpr
     bool step(stack_vector<CPU, 64>& context)
     {
+        if(presented_value.has_value())
+            return false;
+
+        if(waiting_location.has_value())
+            return false;
+
         uint16_t instruction_location = regs[PC_REG];
         uint16_t instr = mem[instruction_location];
 
@@ -625,6 +637,18 @@ struct CPU
                     set_location(ex_location, 0);
             }
 
+            ///extension for multiprocessor, sends a value to a piece of hardware
+            else if(o == 0x1c)
+            {
+                ///a value is hwid, b value is value
+                presented_value = {a_value, b_value};
+            }
+
+            else if(o == 0x1d)
+            {
+                waiting_location = {hwid, b_location};
+            }
+
             else if(o == 0x1e)
             {
                 set_location(b_location, a_value);
@@ -839,6 +863,33 @@ struct CPU
         return res;
     }
 };
+
+template<int N>
+constexpr
+void resolve_interprocessor_communication(stack_vector<CPU, N>& in)
+{
+    for(int i=0; i < (int)in.size(); i++)
+    {
+        for(int j=0; j < (int)in.size(); j++)
+        {
+            CPU& c1 = in[i];
+            CPU& c2 = in[j];
+
+            ///both optionals filled
+            if(c1.presented_value.has_value() && c2.waiting_location.has_value())
+            {
+                ///the value being presented is to the receiving hardware, and the receiving hardware is waiting from a value from the sending device
+                if(c1.presented_value.value().first == c2.hwid && c2.waiting_location.value().first == c1.hwid)
+                {
+                    c2.set_location(c2.waiting_location.value().second, c1.presented_value.value().second);
+
+                    c1.presented_value = std::nullopt;
+                    c2.waiting_location = std::nullopt;
+                }
+            }
+        }
+    }
+}
 
 inline
 constexpr
