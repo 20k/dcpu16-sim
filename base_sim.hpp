@@ -250,6 +250,8 @@ struct CPU
 
     std::optional<std::pair<uint16_t, uint16_t>> presented_value; ///pass a message to another piece of hardware
     std::optional<std::pair<uint16_t, location>> waiting_location; ///waiting to receive a message from a piece of hardware
+    std::array<bool, 65536> pending_writes;
+    std::array<bool, 65536> pending_reads;
 
     stack_ring<interrupt_type, MAX_INTERRUPTS> interrupts;
 
@@ -331,7 +333,7 @@ struct CPU
     }
 
     constexpr
-    bool step(stack_vector<CPU, 64>& context)
+    bool step()
     {
         if(presented_value.has_value())
             return false;
@@ -353,6 +355,21 @@ struct CPU
                 {
                     next_instruction_cycle++;
                     return false;
+                }
+            }
+
+            ///extensions for multiprocessor, ifw/ifr
+            if(get_type(instr) == instr_type::B)
+            {
+                auto [o, a] = decompose_type_b(instr);
+
+                if(o == 0x1a || o == 0x1b)
+                {
+                    if(skipping)
+                    {
+                        next_instruction_cycle++;
+                        return false;
+                    }
                 }
             }
 
@@ -801,6 +818,17 @@ struct CPU
 
             }
 
+            // IFW
+            else if(o == 0x1a)
+            {
+                skipping = !pending_writes[a_value];
+            }
+
+            else if(o == 0x1b)
+            {
+                skipping = !pending_reads[a_value];
+            }
+
             else
             {
                 return true;
@@ -850,13 +878,13 @@ struct CPU
     }
 
     constexpr
-    bool cycle_step(stack_vector<CPU, 64>& context)
+    bool cycle_step()
     {
         bool res = false;
 
         if(cycle_count == next_instruction_cycle)
         {
-            res = step(context);
+            res = step();
         }
 
         cycle_count++;
@@ -885,6 +913,60 @@ void resolve_interprocessor_communication(stack_vector<CPU, N>& in)
 
                     c1.presented_value = std::nullopt;
                     c2.waiting_location = std::nullopt;
+                }
+            }
+        }
+    }
+
+    for(int i=0; i < (int)in.size(); i++)
+    {
+        CPU& c1 = in[i];
+
+        if(!c1.presented_value.has_value())
+        {
+            for(int j=0; j < (int)in.size(); j++)
+            {
+                CPU& c2 = in[j];
+
+                c2.pending_writes[c1.hwid] = false;
+            }
+        }
+        else
+        {
+            for(int j=0; j < (int)in.size(); j++)
+            {
+                CPU& c2 = in[j];
+
+                if(c2.hwid == c1.presented_value().first)
+                {
+                    c2.pending_writes[c1.hwid] = true;
+                }
+            }
+        }
+    }
+
+    for(int i=0; i < (int)in.size(); i++)
+    {
+        CPU& c1 = in[i];
+
+        if(!c1.waiting_location.has_value())
+        {
+            for(int j=0; j < (int)in.size(); j++)
+            {
+                CPU& c2 = in[j];
+
+                c2.pending_reads[c1.hwid] = false;
+            }
+        }
+        else
+        {
+            for(int j=0; j < (int)in.size(); j++)
+            {
+                CPU& c2 = in[j];
+
+                if(c2.hwid == c1.waiting_location.value().first)
+                {
+                    c2.pending_reads[c1.hwid] = true;
                 }
             }
         }

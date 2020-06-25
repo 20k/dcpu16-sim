@@ -39,11 +39,10 @@ constexpr uint16_t cycle_test()
 {
     auto [binary_opt, err] = assemble("ADD X, 10");
 
-    stack_vector<CPU, 64> cpus;
-    CPU& exec = cpus.emplace_back();
+    CPU exec;
 
     exec.load(binary_opt.value().mem, 0);
-    exec.step(cpus);
+    exec.step();
 
     return exec.next_instruction_cycle;
 }
@@ -52,11 +51,10 @@ constexpr uint16_t cycle_test2()
 {
     auto [binary_opt, err] = assemble("ADD X, 9999");
 
-    stack_vector<CPU, 64> cpus;
-    CPU& exec = cpus.emplace_back();
+    CPU exec;
 
     exec.load(binary_opt.value().mem, 0);
-    exec.step(cpus);
+    exec.step();
 
     return exec.next_instruction_cycle;
 }
@@ -65,19 +63,17 @@ constexpr uint16_t test_helper()
 {
     auto [binary_opt, err] = assemble("SET X, 10");
 
-    stack_vector<CPU, 64> cpus;
-    CPU& exec = cpus.emplace_back();
+    CPU exec;
 
     exec.load(binary_opt.value().mem, 0);
-    exec.step(cpus);
+    exec.step();
 
     return exec.regs[X_REG];
 }
 
 constexpr uint16_t cpu_func(uint16_t X, uint16_t i, uint16_t icode)
 {
-    stack_vector<CPU, 64> cpus;
-    CPU& c = cpus.emplace_back();
+    CPU c;
 
     uint16_t instr = construct_type_a(icode, 0x1f, X_REG);
     uint16_t cst = i;
@@ -86,7 +82,7 @@ constexpr uint16_t cpu_func(uint16_t X, uint16_t i, uint16_t icode)
     c.mem[1] = cst;
     c.regs[X_REG] = X;
 
-    c.step(cpus);
+    c.step();
 
     return c.regs[X_REG];
 }
