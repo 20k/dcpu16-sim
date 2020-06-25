@@ -922,26 +922,11 @@ void resolve_interprocessor_communication(stack_vector<CPU, N>& in)
     {
         CPU& c1 = in[i];
 
-        if(!c1.presented_value.has_value())
+        for(int j=0; j < (int)in.size(); j++)
         {
-            for(int j=0; j < (int)in.size(); j++)
-            {
-                CPU& c2 = in[j];
+            CPU& c2 = in[j];
 
-                c2.pending_writes[c1.hwid] = false;
-            }
-        }
-        else
-        {
-            for(int j=0; j < (int)in.size(); j++)
-            {
-                CPU& c2 = in[j];
-
-                if(c2.hwid == c1.presented_value().first)
-                {
-                    c2.pending_writes[c1.hwid] = true;
-                }
-            }
+            c2.pending_writes[c1.hwid] = c1.presented_value.has_value() && c2.hwid == c1.presented_value.value().first;
         }
     }
 
@@ -949,26 +934,11 @@ void resolve_interprocessor_communication(stack_vector<CPU, N>& in)
     {
         CPU& c1 = in[i];
 
-        if(!c1.waiting_location.has_value())
+        for(int j=0; j < (int)in.size(); j++)
         {
-            for(int j=0; j < (int)in.size(); j++)
-            {
-                CPU& c2 = in[j];
+            CPU& c2 = in[j];
 
-                c2.pending_reads[c1.hwid] = false;
-            }
-        }
-        else
-        {
-            for(int j=0; j < (int)in.size(); j++)
-            {
-                CPU& c2 = in[j];
-
-                if(c2.hwid == c1.waiting_location.value().first)
-                {
-                    c2.pending_reads[c1.hwid] = true;
-                }
-            }
+            c2.pending_reads[c1.hwid] = c1.waiting_location.has_value() && c2.hwid == c1.waiting_location.value().first;
         }
     }
 }
