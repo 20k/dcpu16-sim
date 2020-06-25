@@ -663,7 +663,7 @@ struct CPU
 
             else if(o == 0x1d)
             {
-                waiting_location = {true, hwid, b_location};
+                waiting_location = {true, a_value, b_location};
             }
 
             else if(o == 0x1e)

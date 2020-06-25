@@ -87,7 +87,8 @@ constexpr uint16_t cpu_func(uint16_t X, uint16_t i, uint16_t icode)
     return c.regs[X_REG];
 }
 
-constexpr uint16_t multiprocess_1()
+constexpr
+uint16_t multiprocess_1()
 {
     auto [binary_opt, err] = assemble("SET X, 10\nSND X, 1");
     auto [binary_opt2, err2] = assemble("RCV Y, 0");
@@ -114,7 +115,7 @@ void multiprocessor_tests()
 
     printf("%i val\n", val);
 
-    //static_assert(multiprocess_1() == 10);
+    static_assert(multiprocess_1() == 10);
 }
 
 template<long long unsigned int N>
