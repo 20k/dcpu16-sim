@@ -91,7 +91,7 @@ constexpr
 uint16_t multiprocess_1()
 {
     auto [binary_opt, err] = assemble("SET X, 10\nSND X, 1");
-    auto [binary_opt2, err2] = assemble("RCV Y, 0");
+    auto [binary_opt2, err2] = assemble("RCV Y, 0\nRCV Y 0\nSET Y 15");
 
     stack_vector<CPU, 4> cpus;
     CPU& c1 = cpus.emplace_back();
@@ -112,8 +112,6 @@ uint16_t multiprocess_1()
 void multiprocessor_tests()
 {
     uint16_t val = multiprocess_1();
-
-    printf("%i val\n", val);
 
     static_assert(multiprocess_1() == 10);
 }
