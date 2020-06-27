@@ -655,6 +655,8 @@ struct CPU
             }
 
             ///extension for multiprocessor, sends a value to a piece of hardware
+            ///maybe a more realistic method might be to have a fixed number of communication channels, both parties
+            ///specify the id of a communication channel
             else if(o == 0x1c)
             {
                 ///a value is hwid, b value is value
