@@ -61,14 +61,15 @@
 			<Add option="-fconstexpr-ops-limit=42949672965" />
 			<Add directory="deps" />
 		</Compiler>
-		<Linker>
-			<Add option="]]" />
-		</Linker>
 		<Unit filename="base_sim.hpp" />
 		<Unit filename="deps/dcpu16-asm/base_asm.hpp" />
 		<Unit filename="main.cpp" />
 		<Extensions>
 			<lib_finder disable_auto="1" />
+			<code_completion />
+			<envvars />
+			<debugger />
+			<fortran_project />
 		</Extensions>
 	</Project>
 </CodeBlocks_project_file>

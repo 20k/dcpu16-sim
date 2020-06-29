@@ -243,6 +243,14 @@ struct stack_ring
     }
 };
 
+#define NUM_CHANNELS 256
+
+struct fabric
+{
+    //{engaged reader, engaged writer}
+    std::array<std::tuple<bool, bool>, NUM_CHANNELS> channels;
+};
+
 struct CPU
 {
     std::array<uint16_t, MEM_SIZE> mem = {};
@@ -250,8 +258,8 @@ struct CPU
 
     std::tuple<bool, uint16_t, uint16_t> presented_value = {false, 0, 0}; ///pass a message to another piece of hardware
     std::tuple<bool, uint16_t, location> waiting_location = {false, 0, location::reg{X_REG}}; ///waiting to receive a message from a piece of hardware
-    std::array<bool, 65536> pending_writes = {};
-    std::array<bool, 65536> pending_reads = {};
+    //std::array<bool, 65536> pending_writes = {};
+    //std::array<bool, 65536> pending_reads = {};
 
     stack_ring<interrupt_type, MAX_INTERRUPTS> interrupts;
 
@@ -333,7 +341,7 @@ struct CPU
     }
 
     constexpr
-    bool step()
+    bool step(fabric* fabric_opt = nullptr)
     {
         if(std::get<0>(presented_value))
             return false;
@@ -823,12 +831,30 @@ struct CPU
             // IFW
             else if(o == 0x1a)
             {
-                skipping = !pending_writes[a_value];
+                if(fabric_opt)
+                {
+                    skipping = !std::get<0>(fabric_opt->channels[a_value % NUM_CHANNELS]);
+                }
+                else
+                {
+                    skipping = true;
+                }
+
+                //skipping = !pending_writes[a_value];
             }
 
             else if(o == 0x1b)
             {
-                skipping = !pending_reads[a_value];
+                if(fabric_opt)
+                {
+                    skipping = !std::get<1>(fabric_opt->channels[a_value % NUM_CHANNELS]);
+                }
+                else
+                {
+                    skipping = true;
+                }
+
+                //skipping = !pending_reads[a_value];
             }
 
             else
@@ -880,13 +906,13 @@ struct CPU
     }
 
     constexpr
-    bool cycle_step()
+    bool cycle_step(fabric* fabric_opt = nullptr)
     {
         bool res = false;
 
         if(cycle_count == next_instruction_cycle)
         {
-            res = step();
+            res = step(fabric_opt);
         }
 
         cycle_count++;
@@ -896,58 +922,7 @@ struct CPU
 
 template<int N>
 constexpr
-void resolve_interprocessor_communication(stack_vector<CPU, N>& in)
-{
-    for(int i=0; i < (int)in.size(); i++)
-    {
-        for(int j=0; j < (int)in.size(); j++)
-        {
-            CPU& c1 = in[i];
-            CPU& c2 = in[j];
-
-            ///both optionals filled
-            if(std::get<0>(c1.presented_value) && std::get<0>(c2.waiting_location))
-            {
-                ///the value being presented is to the receiving hardware, and the receiving hardware is waiting from a value from the sending device
-                if(std::get<1>(c1.presented_value) == c2.hwid && std::get<1>(c2.waiting_location) == c1.hwid)
-                {
-                    c2.set_location(std::get<2>(c2.waiting_location), std::get<2>(c1.presented_value));
-
-                    std::get<0>(c1.presented_value) = false;
-                    std::get<0>(c2.waiting_location) = false;
-                }
-            }
-        }
-    }
-
-    for(int i=0; i < (int)in.size(); i++)
-    {
-        CPU& c1 = in[i];
-
-        for(int j=0; j < (int)in.size(); j++)
-        {
-            CPU& c2 = in[j];
-
-            c2.pending_writes[c1.hwid] = std::get<0>(c1.presented_value) && c2.hwid == std::get<1>(c1.presented_value);
-        }
-    }
-
-    for(int i=0; i < (int)in.size(); i++)
-    {
-        CPU& c1 = in[i];
-
-        for(int j=0; j < (int)in.size(); j++)
-        {
-            CPU& c2 = in[j];
-
-            c2.pending_reads[c1.hwid] = std::get<0>(c1.waiting_location) && c2.hwid == std::get<1>(c1.waiting_location);
-        }
-    }
-}
-
-template<int N>
-constexpr
-void resolve_interprocessor_communication(stack_vector<CPU*, N>& in)
+void resolve_interprocessor_communication(stack_vector<CPU*, N>& in, fabric& f)
 {
     for(int i=0; i < (int)in.size(); i++)
     {
@@ -960,7 +935,8 @@ void resolve_interprocessor_communication(stack_vector<CPU*, N>& in)
             if(std::get<0>(c1.presented_value) && std::get<0>(c2.waiting_location))
             {
                 ///the value being presented is to the receiving hardware, and the receiving hardware is waiting from a value from the sending device
-                if(std::get<1>(c1.presented_value) == c2.hwid && std::get<1>(c2.waiting_location) == c1.hwid)
+                //if(std::get<1>(c1.presented_value) == c2.hwid && std::get<1>(c2.waiting_location) == c1.hwid)
+                if(std::get<1>(c1.presented_value) == std::get<1>(c2.waiting_location))
                 {
                     c2.set_location(std::get<2>(c2.waiting_location), std::get<2>(c1.presented_value));
 
@@ -971,41 +947,48 @@ void resolve_interprocessor_communication(stack_vector<CPU*, N>& in)
         }
     }
 
-    for(int i=0; i < (int)in.size(); i++)
+    for(int i=0; i < NUM_CHANNELS; i++)
     {
-        CPU& c1 = *in[i];
-
-        for(int j=0; j < (int)in.size(); j++)
-        {
-            CPU& c2 = *in[j];
-
-            c2.pending_writes[c1.hwid] = std::get<0>(c1.presented_value) && c2.hwid == std::get<1>(c1.presented_value);
-        }
+        f.channels[i] = {false, false};
     }
 
     for(int i=0; i < (int)in.size(); i++)
     {
-        CPU& c1 = *in[i];
+        CPU& c = *in[i];
 
-        for(int j=0; j < (int)in.size(); j++)
+        if(std::get<0>(c.presented_value))
         {
-            CPU& c2 = *in[j];
+            uint16_t wrapped = std::get<1>(c.presented_value) % NUM_CHANNELS;
 
-            c2.pending_reads[c1.hwid] = std::get<0>(c1.waiting_location) && c2.hwid == std::get<1>(c1.waiting_location);
+            std::get<1>(f.channels[wrapped]) = true;
+        }
+
+        if(std::get<0>(c.waiting_location))
+        {
+            uint16_t wrapped = std::get<1>(c.waiting_location) % NUM_CHANNELS;
+
+            std::get<0>(f.channels[wrapped]) = true;
         }
     }
 }
 
 template<int N>
 constexpr
-void step_all(stack_vector<CPU, N>& in)
+void step_all(stack_vector<CPU, N>& in, fabric& f)
 {
     for(int i=0; i < (int)in.size(); i++)
     {
-        in[i].step();
+        in[i].step(&f);
     }
 
-    resolve_interprocessor_communication(in);
+    stack_vector<CPU*, N> CPUs;
+
+    for(int i=0; i < (int)in.size(); i++)
+    {
+        CPUs.push_back(&in[i]);
+    }
+
+    resolve_interprocessor_communication(CPUs, f);
 }
 
 inline
