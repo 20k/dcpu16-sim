@@ -245,10 +245,38 @@ struct stack_ring
 
 #define NUM_CHANNELS 256
 
+struct fabric_slot
+{
+    uint16_t last_written_id = 0;
+    uint16_t last_read_id = 0;
+
+    uint16_t next_written_id = 0;
+    uint16_t next_read_id = 0;
+
+    std::optional<uint16_t> current_value = std::nullopt;
+};
+
 struct fabric
 {
-    //{engaged reader, engaged writer}
-    std::array<std::tuple<bool, bool>, NUM_CHANNELS> channels;
+    std::array<fabric_slot, NUM_CHANNELS> channels;
+};
+
+struct presented_info
+{
+    bool has_value = false;
+    uint16_t target = 0;
+    uint16_t value = 0;
+
+    std::optional<uint16_t> assigned_id = std::nullopt;
+};
+
+struct waiting_info
+{
+    bool has_value = false;
+    uint16_t target = 0;
+    location loc = location::constant{0};
+
+    std::optional<uint16_t> assigned_id = std::nullopt;
 };
 
 struct CPU
@@ -256,8 +284,8 @@ struct CPU
     std::array<uint16_t, MEM_SIZE> mem = {};
     std::array<uint16_t, REG_NUM> regs = {};
 
-    std::tuple<bool, uint16_t, uint16_t> presented_value = {false, 0, 0}; ///pass a message to another piece of hardware
-    std::tuple<bool, uint16_t, location> waiting_location = {false, 0, location::reg{X_REG}}; ///waiting to receive a message from a piece of hardware
+    presented_info presented_value; ///pass a message to another piece of hardware
+    waiting_info waiting_location; ///waiting to receive a message from a piece of hardware
     //std::array<bool, 65536> pending_writes = {};
     //std::array<bool, 65536> pending_reads = {};
 
@@ -343,10 +371,10 @@ struct CPU
     constexpr
     bool step(fabric* fabric_opt = nullptr)
     {
-        if(std::get<0>(presented_value))
+        if(presented_value.has_value)
             return false;
 
-        if(std::get<0>(waiting_location))
+        if(waiting_location.has_value)
             return false;
 
         uint16_t instruction_location = regs[PC_REG];
@@ -666,24 +694,46 @@ struct CPU
             else if(o == 0x1c)
             {
                 ///HCF
-                if(fabric_opt && std::get<1>(fabric_opt->channels[a_value % NUM_CHANNELS]))
+                /*if(fabric_opt && std::get<1>(fabric_opt->channels[a_value % NUM_CHANNELS]))
                 {
                     return true;
-                }
+                }*/
+
+                /*if(!fabric_opt)
+                    return true;
+
+                fabric_slot& slot = fabric_opt->channels[a_value % NUM_CHANNELS];
+
+                uint16_t next = slot.next_written_id++;*/
 
                 ///a value is channel id, b value is value
-                presented_value = {true, a_value, b_value};
+                //presented_value = {true, a_value, b_value};
+
+                presented_value = presented_info();
+                presented_value.has_value = true;
+                presented_value.target = a_value;
+                presented_value.value = b_value;
             }
 
             else if(o == 0x1d)
             {
                 ///HCF
-                if(fabric_opt && std::get<0>(fabric_opt->channels[a_value % NUM_CHANNELS]))
+                /*if(fabric_opt && std::get<0>(fabric_opt->channels[a_value % NUM_CHANNELS]))
                 {
                     return true;
-                }
+                }*/
 
-                waiting_location = {true, a_value, b_location};
+                /*if(!fabric_opt)
+                    return true;
+
+                fabric_slot& slot = fabric_opt->channels[a_value % NUM_CHANNELS];
+
+                uint16_t next = slot.next_read_id++;*/
+
+                waiting_location = waiting_info();
+                waiting_location.has_value = true;
+                waiting_location.target = a_value;
+                waiting_location.loc = b_location;
             }
 
             else if(o == 0x1e)
@@ -843,7 +893,9 @@ struct CPU
             {
                 if(fabric_opt)
                 {
-                    skipping = !std::get<0>(fabric_opt->channels[a_value % NUM_CHANNELS]);
+                    fabric_slot& slot = fabric_opt->channels[a_value % NUM_CHANNELS];
+
+                    skipping = !(slot.last_written_id != slot.next_written_id);
                 }
                 else
                 {
@@ -857,7 +909,11 @@ struct CPU
             {
                 if(fabric_opt)
                 {
-                    skipping = !std::get<1>(fabric_opt->channels[a_value % NUM_CHANNELS]);
+                    fabric_slot& slot = fabric_opt->channels[a_value % NUM_CHANNELS];
+
+                    skipping = !(slot.last_read_id != slot.next_read_id);
+
+                    //skipping = !std::get<1>(fabric_opt->channels[a_value % NUM_CHANNELS]);
                 }
                 else
                 {
@@ -936,6 +992,86 @@ void resolve_interprocessor_communication(stack_vector<CPU*, N>& in, fabric& f)
 {
     for(int i=0; i < (int)in.size(); i++)
     {
+        CPU& c1 = *in[i];
+
+        if(c1.presented_value.has_value)
+        {
+            if(!c1.presented_value.assigned_id.has_value())
+            {
+                fabric_slot& slot = f.channels[c1.presented_value.target % NUM_CHANNELS];
+
+                c1.presented_value.assigned_id = slot.next_written_id++;
+            }
+        }
+
+        if(c1.waiting_location.has_value)
+        {
+            if(!c1.waiting_location.assigned_id.has_value())
+            {
+                fabric_slot& slot = f.channels[c1.waiting_location.target % NUM_CHANNELS];
+
+                c1.waiting_location.assigned_id = slot.next_read_id++;
+            }
+        }
+    }
+
+    ///write values to fabric
+    for(int i=0; i < (int)in.size(); i++)
+    {
+        CPU& c1 = *in[i];
+
+        if(c1.presented_value.has_value)
+        {
+            fabric_slot& slot = f.channels[c1.presented_value.target % NUM_CHANNELS];
+
+            ///already a value written this tick
+            if(slot.current_value.has_value())
+                continue;
+
+            ///no active readers, don't write the value
+            if(slot.last_read_id == slot.next_read_id)
+                continue;
+
+            if(c1.presented_value.assigned_id.value() == slot.last_written_id)
+            {
+                slot.current_value = c1.presented_value.value;
+                slot.last_written_id++;
+
+                c1.presented_value.has_value = false;
+            }
+        }
+    }
+
+    for(int i=0; i < (int)in.size(); i++)
+    {
+        CPU& c1 = *in[i];
+
+        if(c1.waiting_location.has_value)
+        {
+            fabric_slot& slot = f.channels[c1.presented_value.target % NUM_CHANNELS];
+
+            if(!slot.current_value.has_value())
+                continue;
+
+            if(c1.waiting_location.assigned_id.value() == slot.last_read_id)
+            {
+                c1.set_location(c1.waiting_location.loc, slot.current_value.value());
+
+                slot.current_value = std::optional<uint16_t>();
+                slot.last_read_id++;
+
+                c1.waiting_location.has_value = false;
+            }
+        }
+    }
+}
+
+/*template<int N>
+constexpr
+void resolve_interprocessor_communication(stack_vector<CPU*, N>& in, fabric& f)
+{
+    for(int i=0; i < (int)in.size(); i++)
+    {
         for(int j=0; j < (int)in.size(); j++)
         {
             CPU& c1 = *in[i];
@@ -945,7 +1081,6 @@ void resolve_interprocessor_communication(stack_vector<CPU*, N>& in, fabric& f)
             if(std::get<0>(c1.presented_value) && std::get<0>(c2.waiting_location))
             {
                 ///the value being presented is to the receiving hardware, and the receiving hardware is waiting from a value from the sending device
-                //if(std::get<1>(c1.presented_value) == c2.hwid && std::get<1>(c2.waiting_location) == c1.hwid)
                 if(std::get<1>(c1.presented_value) == std::get<1>(c2.waiting_location))
                 {
                     c2.set_location(std::get<2>(c2.waiting_location), std::get<2>(c1.presented_value));
@@ -959,7 +1094,7 @@ void resolve_interprocessor_communication(stack_vector<CPU*, N>& in, fabric& f)
 
     for(int i=0; i < NUM_CHANNELS; i++)
     {
-        f.channels[i] = {false, false};
+        //f.channels[i] = fabric_slot();
     }
 
     for(int i=0; i < (int)in.size(); i++)
@@ -980,7 +1115,7 @@ void resolve_interprocessor_communication(stack_vector<CPU*, N>& in, fabric& f)
             std::get<0>(f.channels[wrapped]) = true;
         }
     }
-}
+}*/
 
 template<int N>
 constexpr

@@ -111,11 +111,39 @@ uint16_t multiprocess_1()
     return c2.fetch_location(location::reg{Y_REG});
 }
 
+constexpr
+uint16_t multiqueue_test_1()
+{
+    auto [binary_opt, err] = assemble("SET X, 10\nRCV X, 0\nRCV Y, 0");
+    auto [binary_opt2, err2] = assemble("SET X, 11\nSND X, 0");
+    auto [binary_opt3, err3] = assemble("SET X, 12\nSND X, 0");
+
+    fabric fab;
+
+    stack_vector<CPU, 3> cpus;
+    CPU& c1 = cpus.emplace_back();
+    CPU& c2 = cpus.emplace_back();
+    CPU& c3 = cpus.emplace_back();
+
+    c1.load(binary_opt.value().mem, 0);
+    c2.load(binary_opt2.value().mem, 0);
+    c3.load(binary_opt3.value().mem, 0);
+
+    step_all(cpus, fab);
+    step_all(cpus, fab);
+    step_all(cpus, fab);
+    step_all(cpus, fab);
+
+    return c1.fetch_location(location::reg{X_REG}) + c1.fetch_location(location::reg{Y_REG});
+}
+
 void multiprocessor_tests()
 {
     uint16_t val = multiprocess_1();
 
     static_assert(multiprocess_1() == 10);
+
+    static_assert(multiqueue_test_1() == 23);
 }
 
 template<long long unsigned int N>
