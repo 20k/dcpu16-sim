@@ -667,12 +667,24 @@ struct CPU
             ///specify the id of a communication channel
             else if(o == 0x1c)
             {
+                ///HCF
+                if(fabric_opt && std::get<1>(fabric_opt->channels[a_value % NUM_CHANNELS]))
+                {
+                    return true;
+                }
+
                 ///a value is hwid, b value is value
                 presented_value = {true, a_value, b_value};
             }
 
             else if(o == 0x1d)
             {
+                ///HCF
+                if(fabric_opt && std::get<0>(fabric_opt->channels[a_value % NUM_CHANNELS]))
+                {
+                    return true;
+                }
+
                 waiting_location = {true, a_value, b_location};
             }
 
