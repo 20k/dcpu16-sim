@@ -39,7 +39,7 @@ constexpr uint16_t cycle_test()
 {
     auto [binary_opt, err] = assemble("ADD X, 10");
 
-    CPU exec;
+    dcpu::sim::CPU exec;
 
     exec.load(binary_opt.value().mem, 0);
     exec.step();
@@ -51,7 +51,7 @@ constexpr uint16_t cycle_test2()
 {
     auto [binary_opt, err] = assemble("ADD X, 9999");
 
-    CPU exec;
+    dcpu::sim::CPU exec;
 
     exec.load(binary_opt.value().mem, 0);
     exec.step();
@@ -63,7 +63,7 @@ constexpr uint16_t test_helper()
 {
     auto [binary_opt, err] = assemble("SET X, 10");
 
-    CPU exec;
+    dcpu::sim::CPU exec;
 
     exec.load(binary_opt.value().mem, 0);
     exec.step();
@@ -73,7 +73,7 @@ constexpr uint16_t test_helper()
 
 constexpr uint16_t cpu_func(uint16_t X, uint16_t i, uint16_t icode)
 {
-    CPU c;
+    dcpu::sim::CPU c;
 
     uint16_t instr = construct_type_a(icode, 0x1f, X_REG);
     uint16_t cst = i;
@@ -93,11 +93,11 @@ uint16_t multiprocess_1()
     auto [binary_opt, err] = assemble("SET X, 10\nSND X, 0");
     auto [binary_opt2, err2] = assemble("RCV Y, 0\nRCV Y 0\nSET Y 15");
 
-    fabric fab;
+    dcpu::sim::fabric fab;
 
-    stack_vector<CPU, 4> cpus;
-    CPU& c1 = cpus.emplace_back();
-    CPU& c2 = cpus.emplace_back();
+    stack_vector<dcpu::sim::CPU, 4> cpus;
+    dcpu::sim::CPU& c1 = cpus.emplace_back();
+    dcpu::sim::CPU& c2 = cpus.emplace_back();
 
     c1.hwid = 0;
     c2.hwid = 1;
@@ -108,7 +108,7 @@ uint16_t multiprocess_1()
     step_all(cpus, fab);
     step_all(cpus, fab);
 
-    return c2.fetch_location(location::reg{Y_REG});
+    return c2.fetch_location(dcpu::sim::location::reg{Y_REG});
 }
 
 constexpr
@@ -118,12 +118,12 @@ uint16_t multiqueue_test_1()
     auto [binary_opt2, err2] = assemble("SET X, 11\nSND X, 0");
     auto [binary_opt3, err3] = assemble("SET X, 12\nSND X, 0");
 
-    fabric fab;
+    dcpu::sim::fabric fab;
 
-    stack_vector<CPU, 3> cpus;
-    CPU& c1 = cpus.emplace_back();
-    CPU& c2 = cpus.emplace_back();
-    CPU& c3 = cpus.emplace_back();
+    stack_vector<dcpu::sim::CPU, 3> cpus;
+    dcpu::sim::CPU& c1 = cpus.emplace_back();
+    dcpu::sim::CPU& c2 = cpus.emplace_back();
+    dcpu::sim::CPU& c3 = cpus.emplace_back();
 
     c1.load(binary_opt.value().mem, 0);
     c2.load(binary_opt2.value().mem, 0);
@@ -134,7 +134,7 @@ uint16_t multiqueue_test_1()
     step_all(cpus, fab);
     step_all(cpus, fab);
 
-    return c1.fetch_location(location::reg{X_REG}) + c1.fetch_location(location::reg{Y_REG});
+    return c1.fetch_location(dcpu::sim::location::reg{X_REG}) + c1.fetch_location(dcpu::sim::location::reg{Y_REG});
 }
 
 void multiprocessor_tests()
@@ -398,11 +398,11 @@ void runtime_tests()
     {
         if(i != 0)
         {
-            RTASSERT(get_type(construct_type_a(i, 0, 0)) == instr_type::A);
-            RTASSERT(get_type(construct_type_b(i, 0)) == instr_type::B);
+            RTASSERT(dcpu::get_type(construct_type_a(i, 0, 0)) == dcpu::instr_type::A);
+            RTASSERT(dcpu::get_type(construct_type_b(i, 0)) == dcpu::instr_type::B);
         }
 
-        RTASSERT(get_type(construct_type_c(i)) == instr_type::C);
+        RTASSERT(dcpu::get_type(construct_type_c(i)) == dcpu::instr_type::C);
     }
 
     for(int idx=0; idx < 65536; idx++)
