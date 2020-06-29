@@ -662,9 +662,7 @@ struct CPU
                     set_location(ex_location, 0);
             }
 
-            ///extension for multiprocessor, sends a value to a piece of hardware
-            ///maybe a more realistic method might be to have a fixed number of communication channels, both parties
-            ///specify the id of a communication channel
+            ///extension for multiprocessor, sends a value on a channel
             else if(o == 0x1c)
             {
                 ///HCF
@@ -673,7 +671,7 @@ struct CPU
                     return true;
                 }
 
-                ///a value is hwid, b value is value
+                ///a value is channel id, b value is value
                 presented_value = {true, a_value, b_value};
             }
 
