@@ -947,6 +947,57 @@ void resolve_interprocessor_communication(stack_vector<CPU, N>& in)
 
 template<int N>
 constexpr
+void resolve_interprocessor_communication(stack_vector<CPU*, N>& in)
+{
+    for(int i=0; i < (int)in.size(); i++)
+    {
+        for(int j=0; j < (int)in.size(); j++)
+        {
+            CPU& c1 = *in[i];
+            CPU& c2 = *in[j];
+
+            ///both optionals filled
+            if(std::get<0>(c1.presented_value) && std::get<0>(c2.waiting_location))
+            {
+                ///the value being presented is to the receiving hardware, and the receiving hardware is waiting from a value from the sending device
+                if(std::get<1>(c1.presented_value) == c2.hwid && std::get<1>(c2.waiting_location) == c1.hwid)
+                {
+                    c2.set_location(std::get<2>(c2.waiting_location), std::get<2>(c1.presented_value));
+
+                    std::get<0>(c1.presented_value) = false;
+                    std::get<0>(c2.waiting_location) = false;
+                }
+            }
+        }
+    }
+
+    for(int i=0; i < (int)in.size(); i++)
+    {
+        CPU& c1 = *in[i];
+
+        for(int j=0; j < (int)in.size(); j++)
+        {
+            CPU& c2 = *in[j];
+
+            c2.pending_writes[c1.hwid] = std::get<0>(c1.presented_value) && c2.hwid == std::get<1>(c1.presented_value);
+        }
+    }
+
+    for(int i=0; i < (int)in.size(); i++)
+    {
+        CPU& c1 = *in[i];
+
+        for(int j=0; j < (int)in.size(); j++)
+        {
+            CPU& c2 = *in[j];
+
+            c2.pending_reads[c1.hwid] = std::get<0>(c1.waiting_location) && c2.hwid == std::get<1>(c1.waiting_location);
+        }
+    }
+}
+
+template<int N>
+constexpr
 void step_all(stack_vector<CPU, N>& in)
 {
     for(int i=0; i < (int)in.size(); i++)
