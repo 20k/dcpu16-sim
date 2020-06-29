@@ -372,10 +372,16 @@ struct CPU
     bool step(fabric* fabric_opt = nullptr)
     {
         if(presented_value.has_value)
+        {
+            next_instruction_cycle++;
             return false;
+        }
 
         if(waiting_location.has_value)
+        {
+            next_instruction_cycle++;
             return false;
+        }
 
         uint16_t instruction_location = regs[PC_REG];
         uint16_t instr = mem[instruction_location];
@@ -409,6 +415,7 @@ struct CPU
                 }
             }
 
+            ///NEED TO TEST THIS WITH CYCLE ACCURACY8
             if(skipping)
             {
                 skipping = false;
@@ -996,21 +1003,29 @@ void resolve_interprocessor_communication(stack_vector<CPU*, N>& in, fabric& f)
 
         if(c1.presented_value.has_value)
         {
+            //printf("Presenting HV\n");
+
             if(!c1.presented_value.assigned_id.has_value())
             {
                 fabric_slot& slot = f.channels[c1.presented_value.target % NUM_CHANNELS];
 
                 c1.presented_value.assigned_id = slot.next_written_id++;
+
+                //printf("Presenting %i\n", c1.presented_value.assigned_id.value());
             }
         }
 
         if(c1.waiting_location.has_value)
         {
+            //printf("Waiting HV\n");
+
             if(!c1.waiting_location.assigned_id.has_value())
             {
                 fabric_slot& slot = f.channels[c1.waiting_location.target % NUM_CHANNELS];
 
                 c1.waiting_location.assigned_id = slot.next_read_id++;
+
+                //printf("Waiting %i\n", c1.waiting_location.assigned_id.value());
             }
         }
     }
@@ -1020,25 +1035,27 @@ void resolve_interprocessor_communication(stack_vector<CPU*, N>& in, fabric& f)
     {
         CPU& c1 = *in[i];
 
-        if(c1.presented_value.has_value)
+        if(!c1.presented_value.has_value)
+            continue;
+
+        fabric_slot& slot = f.channels[c1.presented_value.target % NUM_CHANNELS];
+
+        ///already a value written this tick
+        if(slot.current_value.has_value())
+            continue;
+
+        ///no active readers, don't write the value
+        if(slot.last_read_id == slot.next_read_id)
+            continue;
+
+        if(c1.presented_value.assigned_id.value() == slot.last_written_id)
         {
-            fabric_slot& slot = f.channels[c1.presented_value.target % NUM_CHANNELS];
+            //printf("Writing value\n");
 
-            ///already a value written this tick
-            if(slot.current_value.has_value())
-                continue;
+            slot.current_value = c1.presented_value.value;
+            slot.last_written_id++;
 
-            ///no active readers, don't write the value
-            if(slot.last_read_id == slot.next_read_id)
-                continue;
-
-            if(c1.presented_value.assigned_id.value() == slot.last_written_id)
-            {
-                slot.current_value = c1.presented_value.value;
-                slot.last_written_id++;
-
-                c1.presented_value.has_value = false;
-            }
+            c1.presented_value.has_value = false;
         }
     }
 
@@ -1046,22 +1063,24 @@ void resolve_interprocessor_communication(stack_vector<CPU*, N>& in, fabric& f)
     {
         CPU& c1 = *in[i];
 
-        if(c1.waiting_location.has_value)
+        if(!c1.waiting_location.has_value)
+            continue;
+
+        fabric_slot& slot = f.channels[c1.presented_value.target % NUM_CHANNELS];
+
+        if(!slot.current_value.has_value())
+            continue;
+
+        if(c1.waiting_location.assigned_id.value() == slot.last_read_id)
         {
-            fabric_slot& slot = f.channels[c1.presented_value.target % NUM_CHANNELS];
+            //printf("Reading value\n");
 
-            if(!slot.current_value.has_value())
-                continue;
+            c1.set_location(c1.waiting_location.loc, slot.current_value.value());
 
-            if(c1.waiting_location.assigned_id.value() == slot.last_read_id)
-            {
-                c1.set_location(c1.waiting_location.loc, slot.current_value.value());
+            slot.current_value = std::optional<uint16_t>();
+            slot.last_read_id++;
 
-                slot.current_value = std::optional<uint16_t>();
-                slot.last_read_id++;
-
-                c1.waiting_location.has_value = false;
-            }
+            c1.waiting_location.has_value = false;
         }
     }
 }
