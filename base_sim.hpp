@@ -170,7 +170,7 @@ uint16_t get_cycle_time_instr(uint16_t instr)
         time += get_cycle_time_arg(a);
         time += get_cycle_time_arg(b);
 
-        std::array<uint16_t, 32> times = {0, 1, 2, 2, 2, 2, 3, 3, 3, 3, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 0, 0, 3, 3, 1, 1, 2, 2};
+        std::array<uint16_t, 32> times = {0, 1, 2, 2, 2, 2, 3, 3, 3, 3, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 0, 0, 3, 3, 4, 4, 2, 2};
 
         time += times[o];
     }
@@ -181,7 +181,7 @@ uint16_t get_cycle_time_instr(uint16_t instr)
 
         time += get_cycle_time_arg(a);
 
-        std::array<uint16_t, 32> times = {0, 3, 0, 0, 0, 0, 0, 0, 4, 1, 1, 3, 2, 0, 0, 0, 2, 4, 4, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0};
+        std::array<uint16_t, 32> times = {0, 3, 0, 0, 0, 0, 0, 0, 4, 1, 1, 3, 2, 0, 0, 0, 2, 4, 4, 0, 0, 0, 0, 0, 0, 0, 3, 3, 0, 0, 0, 0};
 
         time += times[o];
     }
@@ -418,6 +418,7 @@ struct CPU
             ///NEED TO TEST THIS WITH CYCLE ACCURACY8
             if(skipping)
             {
+                next_instruction_cycle++;
                 skipping = false;
                 return false;
             }
