@@ -1,0 +1,3 @@
+/obj/Release/*.o
+/bin/Release/*.exe
+/*.depend
