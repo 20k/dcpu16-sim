@@ -63,7 +63,7 @@ std::tuple<uint16_t, uint16_t> decompose_type_b(uint16_t v)
 constexpr
 uint16_t decompose_type_c(uint16_t v)
 {
-    return (v >> 10) & 0b0000000000011111;
+    return (v >> 10) & 0b0000000000111111;
 }
 
 constexpr
