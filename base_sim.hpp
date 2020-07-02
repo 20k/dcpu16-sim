@@ -114,6 +114,7 @@ namespace sim
     };
 }
 
+constexpr
 std::pair<bool, uint16_t> overflow_add(uint16_t v1, uint16_t v2)
 {
     uint32_t sum = (uint32_t)v1 + (uint32_t)v2;
