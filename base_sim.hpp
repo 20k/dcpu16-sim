@@ -10,6 +10,7 @@
 #include <stdint.h>
 #include <vector>
 #include <tuple>
+//#include <cstdio>
 
 #define MEM_SIZE 0x10000
 #define REG_NUM 12
@@ -1032,6 +1033,8 @@ namespace sim
                 {
                     fabric_slot& slot = f.channels[c1.waiting_location.target % NUM_CHANNELS];
 
+                    //printf("SLOT %i for %i\n", c1.waiting_location.target, i);
+
                     c1.waiting_location.assigned_id = slot.next_read_id++;
 
                     //printf("Waiting %i\n", c1.waiting_location.assigned_id.value());
@@ -1075,7 +1078,7 @@ namespace sim
             if(!c1.waiting_location.has_value)
                 continue;
 
-            fabric_slot& slot = f.channels[c1.presented_value.target % NUM_CHANNELS];
+            fabric_slot& slot = f.channels[c1.waiting_location.target % NUM_CHANNELS];
 
             if(!slot.current_value.has_value())
                 continue;
@@ -1088,6 +1091,8 @@ namespace sim
 
                 slot.current_value = std::optional<uint16_t>();
                 slot.last_read_id++;
+
+                //printf("Cleared %i\n", c1.presented_value.target);
 
                 c1.waiting_location.has_value = false;
             }
