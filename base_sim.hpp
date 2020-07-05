@@ -362,7 +362,7 @@ namespace sim
                 mem[type] = in.svec[i];
             }
 
-            regs[PC_REG] = pc;
+            //regs[PC_REG] = pc;
         }
 
         constexpr
