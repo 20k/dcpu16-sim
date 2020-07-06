@@ -301,8 +301,8 @@ namespace sim
         stack_ring<interrupt_type, MAX_INTERRUPTS> interrupts;
 
         uint16_t interrupt_dequeueing_enabled = 0;
-        uint16_t cycle_count = 0;
-        uint16_t next_instruction_cycle = 0;
+        uint64_t cycle_count = 0;
+        uint64_t next_instruction_cycle = 0;
         bool skipping = false;
         uint16_t hwid = -1;
 
