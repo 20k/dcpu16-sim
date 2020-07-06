@@ -287,7 +287,6 @@ struct waiting_info
 
 namespace sim
 {
-
     struct CPU
     {
         std::array<uint16_t, MEM_SIZE> mem = {};
