@@ -287,6 +287,13 @@ struct waiting_info
 
 namespace sim
 {
+    struct hardware
+    {
+        uint32_t hardware_id = 0;
+        uint16_t hardware_version = 0;
+        uint32_t manufacturer_id = 0;
+    };
+
     struct CPU
     {
         std::array<uint16_t, MEM_SIZE> mem = {};
@@ -377,7 +384,7 @@ namespace sim
         }
 
         constexpr
-        bool step(fabric* fabric_opt = nullptr)
+        bool step(fabric* fabric_opt = nullptr, stack_vector<hardware*, 65536>* hardware_opt = nullptr)
         {
             if(presented_value.has_value)
             {
@@ -872,8 +879,10 @@ namespace sim
                 // HWN
                 else if(o == 0x10)
                 {
-                    // HARDWARE DEVICES NOT SUPPORTED YET
-                    set_location(a_location, 0);
+                    if(hardware_opt != nullptr)
+                        set_location(a_location, hardware_opt->size());
+                    else
+                        set_location(a_location, 0);
                 }
 
                 // HWQ
@@ -881,7 +890,17 @@ namespace sim
                 {
                     uint32_t HID = 0;
                     uint32_t MID = 0;
-                    uint32_t VERSION = 0;
+                    uint16_t VERSION = 0;
+
+                    if(hardware_opt)
+                    {
+                        if(a_value < hardware_opt->size())
+                        {
+                            HID = (*hardware_opt)[a_value]->hardware_id;
+                            MID = (*hardware_opt)[a_value]->manufacturer_id;
+                            VERSION = (*hardware_opt)[a_value]->hardware_version;
+                        }
+                    }
 
                     uint16_t lid = HID >> 16;
                     uint16_t vid = HID & 0xffff;
