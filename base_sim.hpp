@@ -287,11 +287,16 @@ struct waiting_info
 
 namespace sim
 {
+    struct CPU;
+
     struct hardware
     {
         uint32_t hardware_id = 0;
         uint16_t hardware_version = 0;
         uint32_t manufacturer_id = 0;
+
+        constexpr virtual void interrupt(CPU& c){}
+        constexpr virtual void step(CPU& c){}
     };
 
     struct CPU
@@ -920,7 +925,13 @@ namespace sim
                 // HWI
                 else if(o == 0x12)
                 {
-
+                    if(hardware_opt)
+                    {
+                        if(a_value < hardware_opt->size())
+                        {
+                            (*hardware_opt)[a_value]->interrupt(*this);
+                        }
+                    }
                 }
 
                 // IFW
@@ -987,6 +998,14 @@ namespace sim
 
                 regs[PC_REG] = regs[IA_REG];
                 regs[A_REG] = next.message;
+            }
+
+            if(hardware_opt)
+            {
+                for(int i=0; i < (int)hardware_opt->size(); i++)
+                {
+                    (*hardware_opt)[i]->step(*this);
+                }
             }
 
             return false;
