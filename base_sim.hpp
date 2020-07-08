@@ -1032,7 +1032,7 @@ namespace sim
 
             if(cycle_count == next_instruction_cycle)
             {
-                res = step(fabric_opt);
+                res = step(fabric_opt, hardware_opt);
             }
             else
             {
