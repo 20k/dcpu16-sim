@@ -1026,13 +1026,23 @@ namespace sim
         }
 
         constexpr
-        bool cycle_step(fabric* fabric_opt = nullptr)
+        bool cycle_step(fabric* fabric_opt = nullptr, stack_vector<hardware*, 65536>* hardware_opt = nullptr)
         {
             bool res = false;
 
             if(cycle_count == next_instruction_cycle)
             {
                 res = step(fabric_opt);
+            }
+            else
+            {
+                if(hardware_opt)
+                {
+                    for(int i=0; i < (int)hardware_opt->size(); i++)
+                    {
+                        (*hardware_opt)[i]->step(*this);
+                    }
+                }
             }
 
             cycle_count++;
