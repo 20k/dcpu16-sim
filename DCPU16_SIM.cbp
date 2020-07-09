@@ -61,8 +61,10 @@
 			<Add option="-fconstexpr-ops-limit=42949672965" />
 			<Add directory="deps" />
 		</Compiler>
+		<Unit filename="all_hardware.hpp" />
 		<Unit filename="base_sim.hpp" />
 		<Unit filename="deps/dcpu16-asm/base_asm.hpp" />
+		<Unit filename="hardware_clock.hpp" />
 		<Unit filename="main.cpp" />
 		<Extensions>
 			<lib_finder disable_auto="1" />
