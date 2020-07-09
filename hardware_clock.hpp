@@ -95,6 +95,15 @@ namespace dcpu
                     c.add_interrupt(type);
                 }
             }
+
+            constexpr virtual void reset() override
+            {
+                time_started_ms = 0;
+                last_tick_time_ms = 0;
+                tick_divisor = 0;
+                on = false;
+                interrupt_message = 0;
+            }
         };
     }
 }
