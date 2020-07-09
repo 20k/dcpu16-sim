@@ -1,6 +1,7 @@
 #include "base_sim.hpp"
 #include "base_hardware.hpp"
 #include <dcpu16-asm/base_asm.hpp>
+#include "hardware_clock.hpp"
 #include <stdio.h>
 
 #ifdef STATIC_CHECK_UB_DECODER

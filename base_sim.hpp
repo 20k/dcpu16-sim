@@ -10,8 +10,8 @@
 #include <stdint.h>
 #include <vector>
 #include <tuple>
-#include "base_hardware.hpp"
 //#include <cstdio>
+#include "base_hardware.hpp"
 
 #define MEM_SIZE 0x10000
 #define REG_NUM 12
@@ -288,7 +288,8 @@ struct waiting_info
 
 namespace sim
 {
-    struct world_component;
+    struct world_base;
+    struct hardware;
 
     struct CPU
     {
@@ -377,6 +378,21 @@ namespace sim
         bool can_add_interrupts()
         {
             return fetch_location(location::reg{IA_REG}) == 0;
+        }
+
+        constexpr
+        bool add_interrupt(interrupt_type type)
+        {
+             // HCF
+            if(interrupts.size() > 256)
+                return true;
+
+            if(can_add_interrupts())
+            {
+                interrupts.push_back(type);
+            }
+
+            return false;
         }
 
         constexpr
@@ -811,14 +827,8 @@ namespace sim
                     type.is_software = 1;
                     type.message = a_value;
 
-                    // HCF
-                    if(interrupts.size() > 256)
+                    if(add_interrupt(type))
                         return true;
-
-                    if(can_add_interrupts())
-                    {
-                        interrupts.push_back(type);
-                    }
                 }
 
                 // IAG
