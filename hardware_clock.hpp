@@ -56,24 +56,6 @@ namespace dcpu
                 {
                     uint64_t diff_ms = tstate->time_ms - time_started_ms;
 
-                    //uint64_t
-
-                    ///equation is diff_ms > (1000/(60/b))
-                    ///equation is diff_ms > (1000 * b / 60)
-
-                    //uint64_t tick_upper = 1000 * (uint64_t)tick_divisor / 60;
-
-                    //if(diff_ms > tick_upper)
-
-                    ///(60 / B) / 1000 ticks per ms
-                    ///1000 * B / 60 ms per tick
-                    ///so its
-                    ///diff_ms / (1000 * B / 60) ticks elapsed
-
-                    ///60/b ticks per second
-                    ///b/60 seconds per tick
-                    ///1000*b/60 seconds per tick
-
                     uint16_t tick_count = ((double)diff_ms) / ((1000. * (uint64_t)tick_divisor) / 60.);
 
                     c.regs[C_REG] = tick_count;
