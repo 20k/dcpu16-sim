@@ -2,6 +2,7 @@
 #define ALL_HARDWARE_HPP_INCLUDED
 
 #include "hardware_clock.hpp"
+#include <memory>
 
 namespace dcpu
 {
@@ -18,7 +19,7 @@ namespace dcpu
             if(type == hardware_type::CLOCK)
                 return new clock;
 
-            return nullptr;
+            return new hardware;
         }
     }
 }
