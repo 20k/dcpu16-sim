@@ -1,4 +1,5 @@
 #include "base_sim.hpp"
+#include "base_hardware.hpp"
 #include <dcpu16-asm/base_asm.hpp>
 #include <stdio.h>
 

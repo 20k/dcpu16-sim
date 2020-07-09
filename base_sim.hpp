@@ -10,6 +10,7 @@
 #include <stdint.h>
 #include <vector>
 #include <tuple>
+#include "base_hardware.hpp"
 //#include <cstdio>
 
 #define MEM_SIZE 0x10000
@@ -287,17 +288,7 @@ struct waiting_info
 
 namespace sim
 {
-    struct CPU;
-
-    struct hardware
-    {
-        uint32_t hardware_id = 0;
-        uint16_t hardware_version = 0;
-        uint32_t manufacturer_id = 0;
-
-        constexpr virtual void interrupt(CPU& c){}
-        constexpr virtual void step(CPU& c){}
-    };
+    struct world_component;
 
     struct CPU
     {
@@ -389,7 +380,7 @@ namespace sim
         }
 
         constexpr
-        bool step(fabric* fabric_opt = nullptr, stack_vector<hardware*, 65536>* hardware_opt = nullptr)
+        bool step(fabric* fabric_opt = nullptr, stack_vector<hardware*, 65536>* hardware_opt = nullptr, world_base* world_component = nullptr)
         {
             if(presented_value.has_value)
             {
@@ -929,7 +920,7 @@ namespace sim
                     {
                         if(a_value < hardware_opt->size())
                         {
-                            (*hardware_opt)[a_value]->interrupt(*this);
+                            (*hardware_opt)[a_value]->interrupt(world_component, *this);
                         }
                     }
                 }
@@ -1004,7 +995,7 @@ namespace sim
             {
                 for(int i=0; i < (int)hardware_opt->size(); i++)
                 {
-                    (*hardware_opt)[i]->step(*this);
+                    (*hardware_opt)[i]->step(world_component, *this);
                 }
             }
 
@@ -1026,13 +1017,13 @@ namespace sim
         }
 
         constexpr
-        bool cycle_step(fabric* fabric_opt = nullptr, stack_vector<hardware*, 65536>* hardware_opt = nullptr)
+        bool cycle_step(fabric* fabric_opt = nullptr, stack_vector<hardware*, 65536>* hardware_opt = nullptr, world_base* world_component = nullptr)
         {
             bool res = false;
 
             if(cycle_count == next_instruction_cycle)
             {
-                res = step(fabric_opt, hardware_opt);
+                res = step(fabric_opt, hardware_opt, world_component);
             }
             else
             {
@@ -1040,7 +1031,7 @@ namespace sim
                 {
                     for(int i=0; i < (int)hardware_opt->size(); i++)
                     {
-                        (*hardware_opt)[i]->step(*this);
+                        (*hardware_opt)[i]->step(world_component, *this);
                     }
                 }
             }
