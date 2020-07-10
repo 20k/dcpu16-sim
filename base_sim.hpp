@@ -308,6 +308,7 @@ namespace sim
         uint64_t next_instruction_cycle = 0;
         bool skipping = false;
         uint16_t hwid = -1;
+        int Hz = 1000;
 
         constexpr
         CPU(uint16_t _hwid){hwid = _hwid;}
