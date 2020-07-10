@@ -1,3 +1,4 @@
 /obj/Release/*.o
 /bin/Release/*.exe
 /*.depend
+/DCPU16_SIM.layout
