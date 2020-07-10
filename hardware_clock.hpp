@@ -38,7 +38,7 @@ namespace dcpu
                     if(c.regs[B_REG] == 0)
                     {
                         on = false;
-                        //interrupts = false; ///?
+                        interrupts = false; ///?
                     }
                     else
                     {
