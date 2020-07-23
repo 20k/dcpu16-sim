@@ -320,6 +320,14 @@ namespace dcpu
                     }
                 }
             }
+
+            constexpr virtual void reset() override
+            {
+                border_palette_index = 0;
+                vram_map = 0;
+                font_map = 0;
+                palette_map = 0;
+            }
         };
     }
 }
