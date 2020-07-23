@@ -41,13 +41,24 @@ namespace dcpu
 
             std::array<detail::cell_pix, 128> default_cell_memory;
 
+            static uint32_t to_rgba32(uint16_t in)
+            {
+                uint32_t r = (in >> 8) & 0b1111;
+                uint32_t g = (in >> 4) & 0b1111;
+                uint32_t b = (in >> 0) & 0b1111;
+
+                uint32_t out = (r << 24) | (g << 16) | (b << 8) | 0xFF;
+
+                return out;
+            }
+
             //uses convention y * width + x, top left indexed
             //palette data does not use that convention unfortunately
-            bool pixel_is_set(CPU& c, uint16_t palette_idx, int x, int y)
+            bool pixel_is_set(CPU& c, uint16_t font_idx, int x, int y)
             {
-                if(palette_map == 0)
+                if(font_map == 0)
                 {
-                    detail::cell_pix& val = default_cell_memory[palette_idx % 128];
+                    detail::cell_pix& val = default_cell_memory[font_idx % 128];
 
                     uint8_t o4 = val.data[0] >> 8;
                     uint8_t o3 = val.data[0] & 0xFF;
@@ -69,8 +80,8 @@ namespace dcpu
                 }
                 else
                 {
-                    uint16_t addr1 = palette_idx * 2 + 0 + palette_map;
-                    uint16_t addr2 = palette_idx * 2 + 1 + palette_map;
+                    uint16_t addr1 = font_idx * 2 + 0 + font_map;
+                    uint16_t addr2 = font_idx * 2 + 1 + font_map;
 
                     uint8_t o4 = c.mem[addr1] >> 8;
                     uint8_t o3 = c.mem[addr1] & 0xFF;
@@ -171,10 +182,12 @@ namespace dcpu
                 {
                     uint16_t addr = idx + vram_map;
 
-                    uint16_t character_idx = addr & 0b1111111;
-                    uint16_t blink = (addr >> 7) & 0x1;
-                    uint16_t background_idx = (addr >> 8) & 0b1111;
-                    uint16_t foreground_idx = (addr >> 12) & 0b1111;
+                    uint16_t value = c.mem[addr];
+
+                    uint16_t character_idx = value & 0b1111111;
+                    uint16_t blink = (value >> 7) & 0x1;
+                    uint16_t background_idx = (value >> 8) & 0b1111;
+                    uint16_t foreground_idx = (value >> 12) & 0b1111;
 
                     uint16_t background_addr = background_idx + palette_map;
                     uint16_t foreground_addr = foreground_idx + palette_map;
@@ -182,7 +195,33 @@ namespace dcpu
                     uint16_t background_col = (palette_map == 0) ? default_palette[background_idx].val : c.mem[background_addr];
                     uint16_t foreground_col = (palette_map == 0) ? default_palette[foreground_idx].val : c.mem[foreground_addr];
 
+                    bool would_blink = (c.cycle_count % (uint64_t)c.Hz) >= ((uint64_t)c.Hz / 2);
 
+                    bool blink_is_blank = blink > 0 && would_blink;
+
+                    for(int y=0; y < cell_height; y++)
+                    {
+                        for(int x=0; x < cell_width; x++)
+                        {
+                            int is_set = pixel_is_set(c, character_idx, x, y);
+
+                            uint32_t col_foreground = to_rgba32(foreground_col);
+                            uint32_t col_background = to_rgba32(background_col);
+
+                            int linear_offset = y * cell_width + x;
+                            int buffer_offset = linear_offset + idx * (cell_width * cell_height);
+
+                            if(blink_is_blank)
+                            {
+                                col_foreground = 0x000000FF;
+                            }
+
+                            if(is_set)
+                                buffer.at(buffer_offset) = col_foreground;
+                            else
+                                buffer.at(buffer_offset) = col_background;
+                        }
+                    }
                 }
             }
         };
