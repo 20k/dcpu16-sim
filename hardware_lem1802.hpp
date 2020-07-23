@@ -318,10 +318,10 @@ namespace dcpu
                             //int linear_offset = y * cell_width + x;
                             //int buffer_offset = linear_offset + idx * (cell_width * cell_height);
 
-                            int big_y = (idx / 32) * 8 + y;
-                            int big_x = (idx % 32) * 4 + x;
+                            int big_y = (idx / cell_x_count) * cell_height + y;
+                            int big_x = (idx % cell_x_count) * cell_width + x;
 
-                            int buffer_offset = big_y * 128 + big_x;
+                            int buffer_offset = big_y * (cell_x_count * cell_width) + big_x;
 
                             if(idx == 0)
                             {
