@@ -39,7 +39,7 @@ namespace dcpu
             //https://gist.github.com/SylvainBoilard/4645708
             constexpr std::array<uint16_t, 256> get_default_font()
             {
-                return {
+                /*return {
                     0xb79e, 0x388e, 0x722c, 0x75f4, 0x19bb, 0x7f8f, 0x85f9, 0xb158,
                     0x242e, 0x2400, 0x082a, 0x0800, 0x0008, 0x0000, 0x0808, 0x0808,
                     0x00ff, 0x0000, 0x00f8, 0x0808, 0x08f8, 0x0000, 0x080f, 0x0000,
@@ -72,11 +72,11 @@ namespace dcpu
                     0x043e, 0x4400, 0x3c40, 0x7c00, 0x1c60, 0x1c00, 0x7c30, 0x7c00,
                     0x6c10, 0x6c00, 0x4c50, 0x3c00, 0x6454, 0x4c00, 0x0836, 0x4100,
                     0x0077, 0x0000, 0x4136, 0x0800, 0x0201, 0x0201, 0x0205, 0x0200
-                };
+                };*/
 
                 //https://github.com/Zardoz89/dcpu_vm/blob/master/src/dcpu/devices/lem1802_font.inc
                 //MIT licensed
-                /*    0x000F, 0x0808, 0x080F, 0x0808, 0x08F8, 0x0808, 0x00FF, 0x0808,
+                    return {0x000F, 0x0808, 0x080F, 0x0808, 0x08F8, 0x0808, 0x00FF, 0x0808,
                     0x0808, 0x0808, 0x08FF, 0x0808, 0x00FF, 0x1414, 0xFF00, 0xFF08,
                     0x1F10, 0x1714, 0xFC04, 0xF414, 0x1710, 0x1714, 0xF404, 0xF414,
                     0xFF00, 0xF714, 0x1414, 0x1414, 0xF700, 0xF714, 0x1417, 0x1414,
@@ -107,7 +107,7 @@ namespace dcpu
                     0x7c14, 0x0800, 0x0814, 0x7c00, 0x7c04, 0x0800, 0x4854, 0x2400,
                     0x043e, 0x4400, 0x3c40, 0x7c00, 0x1c60, 0x1c00, 0x7c30, 0x7c00,
                     0x6c10, 0x6c00, 0x4c50, 0x3c00, 0x6454, 0x4c00, 0x0836, 0x4100,
-                    0x0077, 0x0000, 0x4136, 0x0800, 0x0201, 0x0201, 0x0205, 0x0200,*///?
+                    0x0077, 0x0000, 0x4136, 0x0800, 0x0201, 0x0201, 0x0205, 0x0200};
             }
 
             // https://github.com/Zardoz89/dcpu_vm/blob/master/src/dcpu/devices/lem1802_palette.inc
@@ -170,7 +170,7 @@ namespace dcpu
                         octet = o3;
                     if(x == 2)
                         octet = o2;
-                    if(x == 1)
+                    if(x == 3)
                         octet = o1;
 
                     return (octet >> y) & 0x1;
@@ -193,7 +193,7 @@ namespace dcpu
                         octet = o3;
                     if(x == 2)
                         octet = o2;
-                    if(x == 1)
+                    if(x == 3)
                         octet = o1;
 
                     return (octet >> y) & 0x1;
@@ -304,7 +304,7 @@ namespace dcpu
                         col_foreground32 = 0x000000FF;
                     }
 
-                    character_idx = 'A';
+                    character_idx = 'a';
 
                     if(idx != 0)
                         break;
