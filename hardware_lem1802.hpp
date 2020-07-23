@@ -296,27 +296,26 @@ namespace dcpu
 
                     bool blink_is_blank = blink > 0 && would_blink;
 
+                    uint32_t col_foreground32 = to_rgba32(foreground_col);
+                    uint32_t col_background32 = to_rgba32(background_col);
+
+                    if(blink_is_blank)
+                    {
+                        col_foreground32 = 0x000000FF;
+                    }
+
                     for(int y=0; y < cell_height; y++)
                     {
                         for(int x=0; x < cell_width; x++)
                         {
                             int is_set = pixel_is_set(c, character_idx, x, y);
 
-                            uint32_t col_foreground = to_rgba32(foreground_col);
-                            uint32_t col_background = to_rgba32(background_col);
-
                             int linear_offset = y * cell_width + x;
                             int buffer_offset = linear_offset + idx * (cell_width * cell_height);
-
-                            if(blink_is_blank)
-                            {
-                                col_foreground = 0x000000FF;
-                            }
-
                             if(is_set)
-                                buffer.at(buffer_offset) = col_foreground;
+                                buffer.at(buffer_offset) = col_foreground32;
                             else
-                                buffer.at(buffer_offset) = col_background;
+                                buffer.at(buffer_offset) = col_background32;
                         }
                     }
                 }
