@@ -275,7 +275,7 @@ namespace dcpu
                 if(vram_map == 0)
                     return;
 
-                for(uint16_t idx = 0; idx < default_cell_memory.size(); idx++)
+                for(uint16_t idx = 0; idx < (32*12); idx++)
                 {
                     uint16_t addr = idx + vram_map;
 
@@ -304,14 +304,33 @@ namespace dcpu
                         col_foreground32 = 0x000000FF;
                     }
 
+                    character_idx = 'A';
+
+                    if(idx != 0)
+                        break;
+
                     for(int y=0; y < cell_height; y++)
                     {
                         for(int x=0; x < cell_width; x++)
                         {
                             int is_set = pixel_is_set(c, character_idx, x, y);
 
-                            int linear_offset = y * cell_width + x;
-                            int buffer_offset = linear_offset + idx * (cell_width * cell_height);
+                            //int linear_offset = y * cell_width + x;
+                            //int buffer_offset = linear_offset + idx * (cell_width * cell_height);
+
+                            int big_y = (idx / 32) * 8 + y;
+                            int big_x = (idx % 32) * 4 + x;
+
+                            int buffer_offset = big_y * 128 + big_x;
+
+                            if(idx == 0)
+                            {
+                                printf("IS SET %i %i %i %x\n", is_set, x, y, col_foreground32);
+                            }
+
+                            col_foreground32 = 0xFF00FFFF;
+                            //col_background32 = 0xFF00FFFF;
+
                             if(is_set)
                                 buffer.at(buffer_offset) = col_foreground32;
                             else
