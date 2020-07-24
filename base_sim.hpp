@@ -1239,7 +1239,7 @@ std::optional<dcpu::sim::location> exec_value_reference(dcpu::sim::CPU& exec, ui
 
         uint16_t reg_value = exec.fetch_location(location::reg{reg_offset});
 
-        return location::memory{exec.fetch_location(location::memory{reg_value})};
+        return location::memory{reg_value};
     }
 
     uint16_t current_instruction = exec.index(instruction_location);
