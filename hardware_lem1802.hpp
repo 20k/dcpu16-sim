@@ -139,9 +139,9 @@ namespace dcpu
 
             static uint32_t to_rgba32(uint16_t in)
             {
-                uint32_t r = (in >> 8) & 0b1111;
-                uint32_t g = (in >> 4) & 0b1111;
-                uint32_t b = (in >> 0) & 0b1111;
+                uint32_t r = ((in >> 8) & (0b1111)) * (256/16);
+                uint32_t g = ((in >> 4) & (0b1111)) * (256/16);
+                uint32_t b = ((in >> 0) & (0b1111)) * (256/16);
 
                 uint32_t out = (r << 24) | (g << 16) | (b << 8) | 0xFF;
 
@@ -304,32 +304,16 @@ namespace dcpu
                         col_foreground32 = 0x000000FF;
                     }
 
-                    character_idx = 'a';
-
-                    if(idx != 0)
-                        break;
-
                     for(int y=0; y < cell_height; y++)
                     {
                         for(int x=0; x < cell_width; x++)
                         {
                             int is_set = pixel_is_set(c, character_idx, x, y);
 
-                            //int linear_offset = y * cell_width + x;
-                            //int buffer_offset = linear_offset + idx * (cell_width * cell_height);
-
                             int big_y = (idx / cell_x_count) * cell_height + y;
                             int big_x = (idx % cell_x_count) * cell_width + x;
 
                             int buffer_offset = big_y * (cell_x_count * cell_width) + big_x;
-
-                            if(idx == 0)
-                            {
-                                printf("IS SET %i %i %i %x\n", is_set, x, y, col_foreground32);
-                            }
-
-                            col_foreground32 = 0xFF00FFFF;
-                            //col_background32 = 0xFF00FFFF;
 
                             if(is_set)
                                 buffer.at(buffer_offset) = col_foreground32;
