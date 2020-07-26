@@ -1279,18 +1279,18 @@ std::optional<dcpu::sim::location> exec_value_reference(dcpu::sim::CPU& exec, ui
     {
         if(pos == arg_pos::A)
         {
-            uint16_t reg_val = exec.fetch_location(location::reg{SP_REG}) - 1;
+            uint16_t reg_val = exec.fetch_location(location::reg{SP_REG});
 
-            exec.set_location(location::reg{SP_REG}, reg_val);
+            exec.set_location(location::reg{SP_REG}, reg_val+1);
 
             return location::memory{reg_val};
         }
 
         if(pos == arg_pos::B)
         {
-            uint16_t reg_val = exec.fetch_location(location::reg{SP_REG});
+            uint16_t reg_val = exec.fetch_location(location::reg{SP_REG}) - 1;
 
-            exec.set_location(location::reg{SP_REG}, reg_val + 1);
+            exec.set_location(location::reg{SP_REG}, reg_val);
 
             return location::memory{reg_val};
         }
