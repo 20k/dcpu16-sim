@@ -12,6 +12,7 @@
 #include <tuple>
 //#include <cstdio>
 #include "base_hardware.hpp"
+#include <iostream>
 
 #define MEM_SIZE 0x10000
 #define REG_NUM 12
@@ -302,6 +303,7 @@ namespace sim
         //std::array<bool, 65536> pending_reads = {};
 
         stack_ring<interrupt_type, MAX_INTERRUPTS> interrupts;
+        stack_vector<uint16_t, 8> breakpoints;
 
         uint16_t interrupt_dequeueing_enabled = 0;
         uint64_t cycle_count = 0;
@@ -416,6 +418,17 @@ namespace sim
 
             regs[PC_REG] += (uint16_t)get_instruction_length(instr);
 
+            bool is_breakpoint = false;
+
+            for(auto i : breakpoints)
+            {
+                if(i == regs[PC_REG])
+                {
+                    is_breakpoint = true;
+                    break;
+                }
+            }
+
             {
                 auto [o, a, b] = decompose_type_a(instr);
 
@@ -424,7 +437,7 @@ namespace sim
                     if(skipping)
                     {
                         next_instruction_cycle++;
-                        return false;
+                        return is_breakpoint;
                     }
                 }
 
@@ -438,7 +451,7 @@ namespace sim
                         if(skipping)
                         {
                             next_instruction_cycle++;
-                            return false;
+                            return is_breakpoint;
                         }
                     }
                 }
@@ -448,7 +461,7 @@ namespace sim
                 {
                     next_instruction_cycle++;
                     skipping = false;
-                    return false;
+                    return is_breakpoint;
                 }
             }
 
@@ -793,7 +806,7 @@ namespace sim
                     return true;
                 }
 
-                return false;
+                return is_breakpoint;
             }
 
             else if(type == instr_type::B)
@@ -1010,7 +1023,7 @@ namespace sim
                 }
             }
 
-            return false;
+            return is_breakpoint;
         }
 
         void push_stack_value(uint16_t val)
