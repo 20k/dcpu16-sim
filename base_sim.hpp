@@ -303,7 +303,9 @@ namespace sim
         //std::array<bool, 65536> pending_reads = {};
 
         stack_ring<interrupt_type, MAX_INTERRUPTS> interrupts;
-        stack_vector<uint16_t, 8> breakpoints;
+
+        ///words, must be exact to the start of an instruction. Sorted from lowest word to highest
+        stack_vector<uint16_t, 256> breakpoints;
 
         uint16_t interrupt_dequeueing_enabled = 0;
         uint64_t cycle_count = 0;
@@ -401,13 +403,17 @@ namespace sim
         constexpr
         bool is_breakpoint()
         {
-            for(auto i : breakpoints)
-            {
-                if(i == regs[PC_REG])
-                    return true;
-            }
+            return std::binary_search(breakpoints.begin(), breakpoints.end(), regs[PC_REG]);
+        }
 
-            return false;
+        constexpr
+        void set_breakpoints(const stack_vector<uint16_t, 256>& program_counters_in)
+        {
+            breakpoints.clear();
+
+            breakpoints = program_counters_in;
+
+            std::sort(breakpoints.begin(), breakpoints.end());
         }
 
         constexpr
