@@ -399,6 +399,18 @@ namespace sim
         }
 
         constexpr
+        bool is_breakpoint()
+        {
+            for(auto i : breakpoints)
+            {
+                if(i == regs[PC_REG])
+                    return true;
+            }
+
+            return false;
+        }
+
+        constexpr
         bool step(fabric* fabric_opt = nullptr, stack_vector<hardware*, 65536>* hardware_opt = nullptr, world_base* world_component = nullptr)
         {
             if(presented_value.has_value)
@@ -413,21 +425,18 @@ namespace sim
                 return false;
             }
 
+            ///User set a breakpoint on the very first instruction. This consumes an extra cycle buut eh
+            if(is_breakpoint() && next_instruction_cycle == 0)
+            {
+                next_instruction_cycle++;
+                return true;
+            }
+
             uint16_t instruction_location = regs[PC_REG];
             uint16_t instr = mem[instruction_location];
 
             regs[PC_REG] += (uint16_t)get_instruction_length(instr);
 
-            bool is_breakpoint = false;
-
-            for(auto i : breakpoints)
-            {
-                if(i == regs[PC_REG])
-                {
-                    is_breakpoint = true;
-                    break;
-                }
-            }
 
             {
                 auto [o, a, b] = decompose_type_a(instr);
@@ -437,7 +446,7 @@ namespace sim
                     if(skipping)
                     {
                         next_instruction_cycle++;
-                        return is_breakpoint;
+                        return is_breakpoint();
                     }
                 }
 
@@ -451,7 +460,7 @@ namespace sim
                         if(skipping)
                         {
                             next_instruction_cycle++;
-                            return is_breakpoint;
+                            return is_breakpoint();
                         }
                     }
                 }
@@ -461,7 +470,7 @@ namespace sim
                 {
                     next_instruction_cycle++;
                     skipping = false;
-                    return is_breakpoint;
+                    return is_breakpoint();
                 }
             }
 
@@ -806,7 +815,7 @@ namespace sim
                     return true;
                 }
 
-                return is_breakpoint;
+                return is_breakpoint();
             }
 
             else if(type == instr_type::B)
@@ -1023,7 +1032,7 @@ namespace sim
                 }
             }
 
-            return is_breakpoint;
+            return is_breakpoint();
         }
 
         void push_stack_value(uint16_t val)
