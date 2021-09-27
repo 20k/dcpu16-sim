@@ -1177,6 +1177,30 @@ namespace sim
         }
     }
 
+    constexpr
+    bool has_write(CPU& c)
+    {
+        return c.presented_value.has_value;
+    }
+
+    ///[value, channel]
+    constexpr
+    std::pair<uint16_t, uint16_t> drain_write(CPU& c, fabric& f)
+    {
+        if(!has_write(c))
+            return {0, 0};
+
+        fabric_slot& slot = f.channels[c.presented_value.target % NUM_CHANNELS];
+        slot.last_written_id++;
+
+        uint16_t value = c.presented_value.value;
+        uint16_t channel = c.presented_value.target;
+
+        c.presented_value.has_value = false;
+
+        return {value, channel};
+    }
+
     template<int N>
     constexpr
     void step_all(stack_vector<CPU, N>& in, fabric& f)
