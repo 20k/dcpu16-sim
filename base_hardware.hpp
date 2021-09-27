@@ -35,6 +35,7 @@ namespace dcpu
             constexpr virtual void interrupt(world_base* state, CPU& c){}
             constexpr virtual void step(world_base* state, CPU& c){}
             constexpr virtual void reset(){}
+            constexpr virtual hardware* clone(){return nullptr;}
         };
     }
 }

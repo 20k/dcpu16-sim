@@ -104,6 +104,14 @@ namespace dcpu
                 on = false;
                 interrupt_message = 0;
             }
+
+            constexpr virtual hardware* clone() override
+            {
+                hardware* ret = new hardware;
+                *ret = *this;
+
+                return ret;
+            }
         };
     }
 }

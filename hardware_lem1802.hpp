@@ -331,6 +331,14 @@ namespace dcpu
                 font_map = 0;
                 palette_map = 0;
             }
+
+            constexpr virtual hardware* clone() override
+            {
+                hardware* ret = new hardware;
+                *ret = *this;
+
+                return ret;
+            }
         };
     }
 }
