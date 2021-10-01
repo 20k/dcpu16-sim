@@ -1183,6 +1183,12 @@ namespace sim
         return c.presented_value.has_value;
     }
 
+    constexpr
+    bool has_read(CPU& c)
+    {
+        return c.waiting_location.has_value;
+    }
+
     ///[value, channel]
     constexpr
     std::pair<uint16_t, uint16_t> drain_write(CPU& c, fabric& f)
@@ -1199,6 +1205,20 @@ namespace sim
         c.presented_value.has_value = false;
 
         return {value, channel};
+    }
+
+    constexpr
+    void fulfill_read(CPU& c, fabric& f, uint16_t value)
+    {
+        if(!has_read(c))
+            return;
+
+        fabric_slot& slot = f.channels[c.waiting_location.target % NUM_CHANNELS];
+        slot.last_read_id++;
+
+        c.set_location(c.waiting_location.loc, value);
+
+        c.waiting_location.has_value = false;
     }
 
     template<int N>
