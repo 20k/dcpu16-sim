@@ -1229,11 +1229,10 @@ namespace sim
         slot.last_written_id++;
 
         uint16_t value = c.presented_value.value;
-        uint16_t channel = c.presented_value.target % NUM_CHANNEL;
 
         c.presented_value.has_value = false;
 
-        return {value, channel};
+        return value;
     }
 
     constexpr
