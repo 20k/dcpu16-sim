@@ -1178,29 +1178,41 @@ namespace sim
     }
 
     constexpr
-    bool has_write(CPU& c)
+    bool has_write(CPU& c, uint16_t channel)
+    {
+        return c.presented_value.has_value && c.presented_value.target == (channel % NUM_CHANNELS);
+    }
+
+    constexpr
+    bool has_any_write(CPU& c)
     {
         return c.presented_value.has_value;
     }
 
     constexpr
-    bool has_read(CPU& c)
+    bool has_read(CPU& c, uint16_t channel)
+    {
+        return c.waiting_location.has_value && c.waiting_location.target == (channel % NUM_CHANNELS);
+    }
+
+    constexpr
+    bool has_any_read(CPU& c)
     {
         return c.waiting_location.has_value;
     }
 
     ///[value, channel]
     constexpr
-    std::pair<uint16_t, uint16_t> drain_write(CPU& c, fabric& f)
+    std::pair<uint16_t, uint16_t> drain_any_write(CPU& c, fabric& f)
     {
-        if(!has_write(c))
+        if(!has_any_write(c))
             return {0, 0};
 
         fabric_slot& slot = f.channels[c.presented_value.target % NUM_CHANNELS];
         slot.last_written_id++;
 
         uint16_t value = c.presented_value.value;
-        uint16_t channel = c.presented_value.target;
+        uint16_t channel = c.presented_value.target % NUM_CHANNELS;
 
         c.presented_value.has_value = false;
 
@@ -1208,9 +1220,42 @@ namespace sim
     }
 
     constexpr
-    void fulfill_read(CPU& c, fabric& f, uint16_t value)
+    uint16_t drain_write(CPU& c, fabric& f, uint16_t in_channel)
     {
-        if(!has_read(c))
+        if(!has_write(c, in_channel))
+            return 0;
+
+        fabric_slot& slot = f.channels[c.presented_value.target % NUM_CHANNELS];
+        slot.last_written_id++;
+
+        uint16_t value = c.presented_value.value;
+        uint16_t channel = c.presented_value.target % NUM_CHANNEL;
+
+        c.presented_value.has_value = false;
+
+        return {value, channel};
+    }
+
+    constexpr
+    uint16_t fulfill_any_read(CPU& c, fabric& f, uint16_t value)
+    {
+        if(!has_any_read(c))
+            return 0;
+
+        fabric_slot& slot = f.channels[c.waiting_location.target % NUM_CHANNELS];
+        slot.last_read_id++;
+
+        c.set_location(c.waiting_location.loc, value);
+
+        c.waiting_location.has_value = false;
+
+        return (c.waiting_location.target % NUM_CHANNELS);
+    }
+
+    constexpr
+    void fulfill_read(CPU& c, fabric& f, uint16_t value, uint16_t channel)
+    {
+        if(!has_read(c, channel))
             return;
 
         fabric_slot& slot = f.channels[c.waiting_location.target % NUM_CHANNELS];
@@ -1220,6 +1265,7 @@ namespace sim
 
         c.waiting_location.has_value = false;
     }
+
 
     template<int N>
     constexpr
