@@ -94,7 +94,7 @@ constexpr
 uint16_t multiprocess_1()
 {
     auto [binary_opt, err] = assemble("SET X, 10\nSND X, 0");
-    auto [binary_opt2, err2] = assemble("RCV Y, 0\nRCV Y 0\nSET Y 15");
+    auto [binary_opt2, err2] = assemble("RCV Y, 0\nRCV Y, 0\nSET Y, 15");
 
     dcpu::sim::fabric fab;
 
