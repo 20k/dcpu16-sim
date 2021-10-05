@@ -115,6 +115,24 @@ namespace sim
         constexpr location(constant c) : l{c}
         {
         }
+
+        void debug()
+        {
+            if(auto* pval = std::get_if<memory>(&l))
+            {
+                std::cout << "Memory " << pval->v << std::endl;
+            }
+
+            if(auto* pval = std::get_if<reg>(&l))
+            {
+                std::cout << "Register " << pval->v << std::endl;
+            }
+
+            if(auto* pval = std::get_if<constant>(&l))
+            {
+                std::cout << "Constant " << pval->v << std::endl;
+            }
+        }
     };
 }
 
