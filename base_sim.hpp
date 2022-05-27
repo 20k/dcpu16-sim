@@ -14,6 +14,7 @@
 //#include <cstdio>
 #include "base_hardware.hpp"
 #include <iostream>
+#include <algorithm>
 
 #define MEM_SIZE 0x10000
 #define REG_NUM 12
