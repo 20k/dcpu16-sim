@@ -14,7 +14,8 @@ namespace dcpu
             NONE
         };
 
-        constexpr hardware* make_hardware(hardware_type type)
+        inline
+        hardware* make_hardware(hardware_type type)
         {
             if(type == hardware_type::CLOCK)
                 return new clock;

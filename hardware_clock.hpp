@@ -105,7 +105,7 @@ namespace dcpu
                 interrupt_message = 0;
             }
 
-            constexpr virtual hardware* clone() override
+            virtual hardware* clone() override
             {
                 return new clock(*this);
             }

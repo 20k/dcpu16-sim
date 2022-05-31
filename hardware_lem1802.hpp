@@ -336,7 +336,7 @@ namespace dcpu
                 buffer = {};
             }
 
-            constexpr virtual hardware* clone() override
+            virtual hardware* clone() override
             {
                 return new LEM1802(*this);
             }
