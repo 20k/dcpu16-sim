@@ -979,7 +979,7 @@ namespace sim
                     {
                         if(a_value < hardware_opt->size())
                         {
-                            (*hardware_opt)[a_value]->interrupt(world_component, *this);
+                            (*hardware_opt)[a_value]->interrupt2(std::span{hardware_opt->begin(), hardware_opt->end()}, world_component, *this);
                         }
                     }
                 }
