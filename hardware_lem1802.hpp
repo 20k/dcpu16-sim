@@ -36,6 +36,8 @@ namespace dcpu
             uint16_t font_map = 0;
             uint16_t palette_map = 0;
 
+            std::array<uint32_t, 128*96> buffer = {};
+
             //https://gist.github.com/SylvainBoilard/4645708
             constexpr std::array<uint16_t, 256> get_default_font()
             {
@@ -270,7 +272,7 @@ namespace dcpu
 
             }
 
-            constexpr void render(world_base* state, CPU& c, std::array<uint32_t, 128*96>& buffer)
+            constexpr void render(world_base* state, CPU& c)
             {
                 if(vram_map == 0)
                     return;
@@ -330,6 +332,8 @@ namespace dcpu
                 vram_map = 0;
                 font_map = 0;
                 palette_map = 0;
+
+                buffer = {};
             }
 
             constexpr virtual hardware* clone() override

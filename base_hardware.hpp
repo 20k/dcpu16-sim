@@ -18,11 +18,6 @@ namespace dcpu
             virtual ~time_state(){}
         };
 
-        struct lem1802_screens_state
-        {
-            std::vector<std::array<uint32_t, 128*96>> memory;
-        };
-
         struct world_base
         {
             virtual ~world_base(){}
