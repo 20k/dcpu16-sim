@@ -334,10 +334,7 @@ namespace dcpu
 
             constexpr virtual hardware* clone() override
             {
-                hardware* ret = new hardware;
-                *ret = *this;
-
-                return ret;
+                return new LEM1802(*this);
             }
         };
     }

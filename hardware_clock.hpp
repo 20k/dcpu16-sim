@@ -107,10 +107,7 @@ namespace dcpu
 
             constexpr virtual hardware* clone() override
             {
-                hardware* ret = new hardware;
-                *ret = *this;
-
-                return ret;
+                return new clock(*this);
             }
         };
     }
