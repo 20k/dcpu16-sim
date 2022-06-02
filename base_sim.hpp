@@ -256,6 +256,7 @@ struct stack_ring
         return val;
     }
 
+    constexpr
     void clear()
     {
         fin = start;
@@ -437,7 +438,7 @@ namespace sim
         }
 
         constexpr
-        bool step(fabric* fabric_opt = nullptr, stack_vector<hardware*, 65536>* hardware_opt = nullptr, world_base* world_component = nullptr)
+        bool step(fabric* fabric_opt = nullptr, std::span<hardware*> hardware_opt = {}, world_base* world_component = nullptr)
         {
             if(presented_value.has_value)
             {
@@ -934,10 +935,7 @@ namespace sim
                 // HWN
                 else if(o == 0x10)
                 {
-                    if(hardware_opt != nullptr)
-                        set_location(a_location, hardware_opt->size());
-                    else
-                        set_location(a_location, 0);
+                    set_location(a_location, hardware_opt.size());
                 }
 
                 // HWQ
@@ -947,14 +945,11 @@ namespace sim
                     uint32_t MID = 0;
                     uint16_t VERSION = 0;
 
-                    if(hardware_opt)
+                    if(a_value < hardware_opt.size())
                     {
-                        if(a_value < hardware_opt->size())
-                        {
-                            HID = (*hardware_opt)[a_value]->hardware_id;
-                            MID = (*hardware_opt)[a_value]->manufacturer_id;
-                            VERSION = (*hardware_opt)[a_value]->hardware_version;
-                        }
+                        HID = hardware_opt[a_value]->hardware_id;
+                        MID = hardware_opt[a_value]->manufacturer_id;
+                        VERSION = hardware_opt[a_value]->hardware_version;
                     }
 
                     uint16_t lid = HID >> 16;
@@ -975,12 +970,9 @@ namespace sim
                 // HWI
                 else if(o == 0x12)
                 {
-                    if(hardware_opt)
+                    if(a_value < hardware_opt.size())
                     {
-                        if(a_value < hardware_opt->size())
-                        {
-                            (*hardware_opt)[a_value]->interrupt2(std::span{hardware_opt->begin(), hardware_opt->end()}, world_component, *this);
-                        }
+                        hardware_opt[a_value]->interrupt2(hardware_opt, world_component, *this);
                     }
                 }
 
@@ -1050,12 +1042,9 @@ namespace sim
                 regs[A_REG] = next.message;
             }
 
-            if(hardware_opt)
+            for(int i=0; i < (int)hardware_opt.size(); i++)
             {
-                for(int i=0; i < (int)hardware_opt->size(); i++)
-                {
-                    (*hardware_opt)[i]->step(world_component, *this);
-                }
+                (hardware_opt)[i]->step(world_component, *this);
             }
 
             return is_breakpoint();
@@ -1076,7 +1065,7 @@ namespace sim
         }
 
         constexpr
-        bool cycle_step(fabric* fabric_opt = nullptr, stack_vector<hardware*, 65536>* hardware_opt = nullptr, world_base* world_component = nullptr)
+        bool cycle_step(fabric* fabric_opt = nullptr, std::span<hardware*> hardware_opt = {}, world_base* world_component = nullptr)
         {
             bool res = false;
 
@@ -1086,12 +1075,9 @@ namespace sim
             }
             else
             {
-                if(hardware_opt)
+                for(int i=0; i < (int)hardware_opt.size(); i++)
                 {
-                    for(int i=0; i < (int)hardware_opt->size(); i++)
-                    {
-                        (*hardware_opt)[i]->step(world_component, *this);
-                    }
+                    hardware_opt[i]->step(world_component, *this);
                 }
             }
 
@@ -1100,9 +1086,8 @@ namespace sim
         }
     };
 
-    template<int N>
     constexpr
-    void resolve_interprocessor_communication(stack_vector<CPU*, N>& in, fabric& f)
+    void resolve_interprocessor_communication(std::span<CPU*> in, fabric& f)
     {
         for(int i=0; i < (int)in.size(); i++)
         {
@@ -1301,7 +1286,7 @@ namespace sim
             CPUs.push_back(&in[i]);
         }
 
-        resolve_interprocessor_communication(CPUs, f);
+        resolve_interprocessor_communication(CPUs.as_span(), f);
     }
 }
 
