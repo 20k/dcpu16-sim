@@ -395,6 +395,17 @@ namespace sim
         }
 
         constexpr
+        void load(std::span<uint16_t> in, uint16_t pc)
+        {
+            for(uint16_t i=0; i < (uint16_t)in.size(); i++)
+            {
+                uint16_t type = i + pc;
+
+                mem[type] = in[i];
+            }
+        }
+
+        constexpr
         uint16_t index(uint16_t in)
         {
             return mem[in];
