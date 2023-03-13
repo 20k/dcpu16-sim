@@ -35,6 +35,8 @@ namespace dcpu
             uint16_t vram_map = 0;
             uint16_t font_map = 0;
             uint16_t palette_map = 0;
+            ///intentionally a separate concept from vram_map != 0, so that a screen can be powered off without breaking the dcpu
+            bool is_on = false;
 
             std::array<uint32_t, 128*96> buffer = {};
 
@@ -214,6 +216,7 @@ namespace dcpu
                 if(c.regs[A_REG] == 0)
                 {
                     vram_map = c.regs[B_REG];
+                    is_on = vram_map != 0;
                 }
 
                 if(c.regs[A_REG] == 1)
