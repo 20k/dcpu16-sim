@@ -5,7 +5,6 @@
 #include <variant>
 #include <assert.h>
 #include <dcpu16-asm/stack_vector.hpp>
-#include <dcpu16-asm/heap_vector.hpp>
 #include <dcpu16-asm/shared.hpp>
 #include <optional>
 #include <stdint.h>
@@ -326,7 +325,7 @@ namespace sim
         stack_ring<interrupt_type, MAX_INTERRUPTS> interrupts;
 
         ///words, must be exact to the start of an instruction. Sorted from lowest word to highest
-        heap_vector<uint16_t> breakpoints;
+        std::vector<uint16_t> breakpoints;
 
         uint16_t interrupt_dequeueing_enabled = 0;
         uint64_t cycle_count = 0;
@@ -439,7 +438,7 @@ namespace sim
         }
 
         constexpr
-        void set_breakpoints(const heap_vector<uint16_t>& program_counters_in)
+        void set_breakpoints(const std::vector<uint16_t>& program_counters_in)
         {
             breakpoints.clear();
 
