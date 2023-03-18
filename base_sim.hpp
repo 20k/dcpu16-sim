@@ -381,7 +381,7 @@ namespace sim
         }
 
         constexpr
-        void load(stack_vector<uint16_t, MEM_SIZE>& in, uint16_t pc)
+        void load(const stack_vector<uint16_t, MEM_SIZE>& in, uint16_t pc)
         {
             for(uint16_t i=0; i < (uint16_t)in.idx; i++)
             {
