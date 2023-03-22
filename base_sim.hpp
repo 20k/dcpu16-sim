@@ -333,6 +333,7 @@ namespace sim
         bool skipping = false;
         uint16_t hwid = -1;
         int Hz = 1000;
+        uint64_t paused_by_hardware = 0;
 
         constexpr
         CPU(uint16_t _hwid){hwid = _hwid;}
@@ -459,6 +460,21 @@ namespace sim
             if(waiting_location.has_value)
             {
                 next_instruction_cycle++;
+                return false;
+            }
+
+            ///if we're waiting on hardware, still step hardware
+            ///todo: need to rework hardware so its always stepped
+            ///otherwise we could end up with hardware deadlocks in some cases
+            if(paused_by_hardware > 0)
+            {
+                next_instruction_cycle++;
+
+                for(int i=0; i < (int)hardware_opt.size(); i++)
+                {
+                    (hardware_opt)[i]->step(world_component, *this);
+                }
+
                 return false;
             }
 
