@@ -1054,6 +1054,8 @@ namespace sim
                 return true;
             }
 
+            // Todo: I think some of my hardware queue impl is incorrect
+            // Interrupts still get pushed to the queue, they just do nothing if IA_REG == 0
             // EXECUTE INTERRUPTS
             if(interrupt_dequeueing_enabled && fetch_location(location::reg{IA_REG}) != 0 && interrupts.size() > 0)
             {
