@@ -178,6 +178,8 @@ struct interrupt_type
     uint16_t is_software = 0;
     uint16_t message = 0;
 
+    std::array<std::optional<uint16_t>, REG_NUM> overrides;
+
     constexpr interrupt_type(){}
 };
 
@@ -1054,8 +1056,6 @@ namespace sim
                 return true;
             }
 
-            // Todo: I think some of my hardware queue impl is incorrect
-            // Interrupts still get pushed to the queue, they just do nothing if IA_REG == 0
             // EXECUTE INTERRUPTS
             if(interrupt_dequeueing_enabled && fetch_location(location::reg{IA_REG}) != 0 && interrupts.size() > 0)
             {
@@ -1068,6 +1068,12 @@ namespace sim
 
                 regs[PC_REG] = regs[IA_REG];
                 regs[A_REG] = next.message;
+
+                for(int i=0; i < REG_NUM; i++)
+                {
+                    if(next.overrides[i].has_value())
+                        regs[i] = next.overrides[i].value();
+                }
             }
 
             for(int i=0; i < (int)hardware_opt.size(); i++)
