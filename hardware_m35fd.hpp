@@ -44,15 +44,6 @@ namespace dcpu
 
             uint16_t get_word(uint16_t word_offset, uint16_t sector)
             {
-                /*int lword = word_offset % words_per_sector;
-                int lsector = sector % sectors_per_track;
-                int track = sector / sectors_per_track;
-
-                if(track >= tracks)
-                    return -1;
-
-                return data.at(track).at(lsector).at(lword);*/
-
                 word_offset = word_offset % words_per_sector;
                 sector = sector % data.size();
 
@@ -119,14 +110,16 @@ namespace dcpu
             bool interrupts_enabled = false;
             uint16_t interrupt_msg = 0;
 
-            void trigger_interrupt()
+            void trigger_interrupt(CPU& c)
             {
+                if(!interrupts_enabled)
+                    return;
 
-            }
+                interrupt_type type;
+                type.is_software = 0;
+                type.message = interrupt_msg;
 
-            void set_ready()
-            {
-                current_state = M35FD_common::STATE_READY;
+                c.add_interrupt(type);
             }
 
             ///doesn't trigger an interrupt because it never happens
@@ -160,8 +153,7 @@ namespace dcpu
                     uint16_t target_word = c.regs[Y_REG];
 
                     current_state = STATE_BUSY;
-
-                    trigger_interrupt();
+                    trigger_interrupt(c);
 
                     for(uint16_t offset = 0; offset < floppy::words_per_sector; offset++)
                     {
@@ -169,7 +161,7 @@ namespace dcpu
                     }
 
                     current_state = STATE_READY;
-                    trigger_interrupt();
+                    trigger_interrupt(c);
                 }
 
                 if(c.regs[A_REG] == 3)
@@ -179,7 +171,7 @@ namespace dcpu
                     uint16_t target_word = c.regs[Y_REG];
 
                     current_state = STATE_BUSY;
-                    trigger_interrupt();
+                    trigger_interrupt(c);
 
                     for(uint16_t offset = 0; offset < floppy::words_per_sector; offset++)
                     {
@@ -189,7 +181,7 @@ namespace dcpu
                     }
 
                     current_state = STATE_READY;
-                    trigger_interrupt();
+                    trigger_interrupt(c);
                 }
             }
 
