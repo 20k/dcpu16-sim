@@ -113,9 +113,6 @@ namespace dcpu
                 manufacturer_id = 0x1eb37e91;
             }
 
-            uint16_t current_state = M35FD_common::STATE_READY;
-            uint16_t last_error = M35FD_common::ERROR_NONE;
-
             std::optional<floppy> floppy_opt;
 
             bool interrupts_enabled = false;
@@ -137,7 +134,6 @@ namespace dcpu
             void insert_floppy(const floppy& flop)
             {
                 floppy_opt = flop;
-                current_state = M35FD_common::STATE_READY;
             }
 
             virtual void interrupt2(std::span<hardware*> all_hardware, world_base* state, CPU& c)
@@ -146,9 +142,8 @@ namespace dcpu
 
                 if(c.regs[A_REG] == 0)
                 {
-                    c.regs[B_REG] = current_state;
-                    c.regs[C_REG] = last_error;
-                    last_error = ERROR_NONE;
+                    c.regs[B_REG] = STATE_READY;
+                    c.regs[C_REG] = ERROR_NONE;
                 }
 
                 if(c.regs[A_REG] == 1)
@@ -163,16 +158,11 @@ namespace dcpu
                     uint16_t reading_sector = c.regs[X_REG];
                     uint16_t target_word = c.regs[Y_REG];
 
-                    ///this isn't useful behaviour, because the interrupt only triggers after the tick, so we just double interrupt
-                    //current_state = STATE_BUSY;
-                    //trigger_interrupt(c);
-
                     for(uint16_t offset = 0; offset < floppy::words_per_sector; offset++)
                     {
                         c.mem[(offset + target_word) % c.mem.size()] = floppy_opt.value().get_word(offset, reading_sector);
                     }
 
-                    current_state = STATE_READY;
                     trigger_interrupt(c);
                 }
 
@@ -182,9 +172,6 @@ namespace dcpu
                     uint16_t writing_sector = c.regs[X_REG];
                     uint16_t target_word = c.regs[Y_REG];
 
-                    //current_state = STATE_BUSY;
-                    //trigger_interrupt(c);
-
                     for(uint16_t offset = 0; offset < floppy::words_per_sector; offset++)
                     {
                         uint16_t word = c.mem[(offset + target_word) % c.mem.size()];
@@ -192,7 +179,6 @@ namespace dcpu
                         floppy_opt.value().set_word(offset, writing_sector, word);
                     }
 
-                    current_state = STATE_READY;
                     trigger_interrupt(c);
                 }
             }
