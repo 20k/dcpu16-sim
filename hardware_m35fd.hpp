@@ -164,8 +164,8 @@ namespace dcpu
                     uint16_t target_word = c.regs[Y_REG];
 
                     ///this isn't useful behaviour, because the interrupt only triggers after the tick, so we just double interrupt
-                    current_state = STATE_BUSY;
-                    trigger_interrupt(c);
+                    //current_state = STATE_BUSY;
+                    //trigger_interrupt(c);
 
                     for(uint16_t offset = 0; offset < floppy::words_per_sector; offset++)
                     {
@@ -182,8 +182,8 @@ namespace dcpu
                     uint16_t writing_sector = c.regs[X_REG];
                     uint16_t target_word = c.regs[Y_REG];
 
-                    current_state = STATE_BUSY;
-                    trigger_interrupt(c);
+                    //current_state = STATE_BUSY;
+                    //trigger_interrupt(c);
 
                     for(uint16_t offset = 0; offset < floppy::words_per_sector; offset++)
                     {
