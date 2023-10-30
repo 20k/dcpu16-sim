@@ -13,65 +13,65 @@ namespace dcpu
             static constexpr int words = tracks * sectors_per_track * words_per_sector;
 
             int last_track = 0;
-            std::array<std::array<std::array<uint16_t, 512>, 18>, 80> data;
+            //std::array<std::array<std::array<uint16_t, 512>, 18>, 80> data;
+            std::array<std::array<uint16_t, 512>, tracks * sectors_per_track> data;
 
-            void set_word(int word_offset, uint16_t word)
+            /*void set_word(int word_offset, uint16_t word)
             {
                 int lword = word_offset % words_per_sector;
                 int sector = (word_offset / words_per_sector) % sectors_per_track;
                 int track = (word_offset / words_per_sector) / sectors_per_track;
 
                 data.at(track).at(sector).at(lword) = word;
-            }
+            }*/
 
             void set_word(uint16_t word_offset, uint16_t sector, uint16_t word)
             {
-                ///% is precautionary
-                int lword = word_offset % words_per_sector;
-                ///% is precautionary
-                sector = sector % sectors_per_track;
-                int track = sector / sectors_per_track;
+                word_offset = word_offset % words_per_sector;
+                sector = sector % data.size();
 
-                if(track >= tracks)
-                    return;
-
-                data.at(track).at(sector).at(lword) = word;
+                data.at(sector).at(word_offset) = word;
             }
 
-            uint16_t get_word(int word_offset)
+            /*uint16_t get_word(int word_offset)
             {
                 int lword = word_offset % words_per_sector;
                 int sector = (word_offset / words_per_sector) % sectors_per_track;
                 int track = (word_offset / words_per_sector) / sectors_per_track;
 
                 return data.at(track).at(sector).at(lword);
-            }
+            }*/
 
             uint16_t get_word(uint16_t word_offset, uint16_t sector)
             {
-                int lword = word_offset % words_per_sector;
-                sector = sector % sectors_per_track;
+                /*int lword = word_offset % words_per_sector;
+                int lsector = sector % sectors_per_track;
                 int track = sector / sectors_per_track;
 
                 if(track >= tracks)
                     return -1;
 
-                return data.at(track).at(sector).at(lword);
+                return data.at(track).at(lsector).at(lword);*/
+
+                word_offset = word_offset % words_per_sector;
+                sector = sector % data.size();
+
+                return data.at(sector).at(word_offset);
             }
 
             ///data, should_seek
-            std::optional<std::array<uint16_t, 512>> get_sector(int sector)
+            /*std::optional<std::array<uint16_t, 512>> get_sector(int sector)
             {
                 int track = sector / sectors_per_track;
-                int sector_offset = sector - track * sectors_per_track;
+                int sector_offset = sector % sectors_per_track;
 
                 if(track >= 80 || sector_offset >= 16)
                     return std::nullopt;
 
                 return data.at(track).at(sector_offset);
-            }
+            }*/
 
-            bool needs_seek(int sector)
+            /*bool needs_seek(int sector)
             {
                 int track = sector / sectors_per_track;
 
@@ -83,7 +83,7 @@ namespace dcpu
                 int track = sector / sectors_per_track;
 
                 last_track = track;
-            }
+            }*/
         };
 
         namespace M35FD_common
@@ -115,8 +115,6 @@ namespace dcpu
             uint16_t last_error = M35FD_common::ERROR_NONE;
 
             std::optional<floppy> floppy_opt;
-            bool is_read_only = false;
-            bool current_operation = false;
 
             bool interrupts_enabled = false;
             uint16_t interrupt_msg = 0;
@@ -126,37 +124,16 @@ namespace dcpu
 
             }
 
-            void set_read_only(bool _is_read_only)
+            void set_ready()
             {
-                is_read_only = _is_read_only;
-
-                ///trigger transition
-                if(current_state == M35FD_common::STATE_READY)
-                {
-                    current_state = M35FD_common::STATE_READY_WP;
-                    trigger_interrupt();
-                }
+                current_state = M35FD_common::STATE_READY;
             }
 
+            ///doesn't trigger an interrupt because it never happens
             void insert_floppy(const floppy& flop)
             {
                 floppy_opt = flop;
-
-                if(is_read_only)
-                    current_state = M35FD_common::STATE_READY_WP;
-                else
-                    current_state = M35FD_common::STATE_READY;
-
-                trigger_interrupt();
-            }
-
-            void eject_floppy()
-            {
-                floppy_opt = std::nullopt;
-
-                current_state = M35FD_common::STATE_NO_MEDIA;
-
-                trigger_interrupt();
+                current_state = M35FD_common::STATE_READY;
             }
 
             virtual void interrupt2(std::span<hardware*> all_hardware, world_base* state, CPU& c)
@@ -178,74 +155,41 @@ namespace dcpu
 
                 if(c.regs[A_REG] == 2)
                 {
-                    if(current_state == STATE_READY || current_state == STATE_READY_WP)
+                    c.regs[B_REG] = 1;
+                    uint16_t reading_sector = c.regs[X_REG];
+                    uint16_t target_word = c.regs[Y_REG];
+
+                    current_state = STATE_BUSY;
+
+                    trigger_interrupt();
+
+                    for(uint16_t offset = 0; offset < floppy::words_per_sector; offset++)
                     {
-                        c.regs[B_REG] = 1;
-                        uint16_t reading_sector = c.regs[X_REG];
-                        uint16_t target_word = c.regs[Y_REG];
-
-                        for(uint16_t offset = 0; offset < floppy::words_per_sector; offset++)
-                        {
-                            c.mem[(offset + target_word) % c.mem.size()] = floppy_opt.value().get_word(offset, reading_sector);
-                        }
+                        c.mem[(offset + target_word) % c.mem.size()] = floppy_opt.value().get_word(offset, reading_sector);
                     }
-                    else
-                    {
-                        c.regs[B_REG] = 0;
 
-                        ///unused in _simple
-                        if(current_state == STATE_BUSY)
-                        {
-                            last_error = ERROR_BUSY;
-                            trigger_interrupt();
-                        }
-
-                        if(current_state == STATE_NO_MEDIA)
-                        {
-                            last_error = ERROR_NO_MEDIA;
-                            trigger_interrupt();
-                        }
-                    }
+                    current_state = STATE_READY;
+                    trigger_interrupt();
                 }
 
                 if(c.regs[A_REG] == 3)
                 {
-                    if(current_state == STATE_READY)
+                    c.regs[B_REG] = 1;
+                    uint16_t writing_sector = c.regs[X_REG];
+                    uint16_t target_word = c.regs[Y_REG];
+
+                    current_state = STATE_BUSY;
+                    trigger_interrupt();
+
+                    for(uint16_t offset = 0; offset < floppy::words_per_sector; offset++)
                     {
-                        c.regs[B_REG] = 1;
-                        uint16_t writing_sector = c.regs[X_REG];
-                        uint16_t target_word = c.regs[Y_REG];
+                        uint16_t word = c.mem[(offset + target_word) % c.mem.size()];
 
-                        for(uint16_t offset = 0; offset < floppy::words_per_sector; offset++)
-                        {
-                            uint16_t word = c.mem[(offset + target_word) % c.mem.size()];
-
-                            floppy_opt.value().set_word(offset, writing_sector, word);
-                        }
+                        floppy_opt.value().set_word(offset, writing_sector, word);
                     }
-                    else
-                    {
-                        c.regs[B_REG] = 0;
 
-                        if(current_state == STATE_READY_WP)
-                        {
-                            last_error = ERROR_PROTECTED;
-                            trigger_interrupt();
-                        }
-
-                        ///unused in _simple
-                        if(current_state == STATE_BUSY)
-                        {
-                            last_error = ERROR_BUSY;
-                            trigger_interrupt();
-                        }
-
-                        if(current_state == STATE_NO_MEDIA)
-                        {
-                            last_error = ERROR_NO_MEDIA;
-                            trigger_interrupt();
-                        }
-                    }
+                    current_state = STATE_READY;
+                    trigger_interrupt();
                 }
             }
 
