@@ -25,6 +25,17 @@ namespace dcpu
                 data.at(track).at(sector).at(lword) = word;
             }*/
 
+            void fill(const std::vector<uint16_t>& in)
+            {
+                for(size_t i = 0; i < in.size(); i++)
+                {
+                    size_t offset = i % 512;
+                    size_t sector = i / 512;
+
+                    data.at(sector).at(offset) = in[i];
+                }
+            }
+
             void set_word(uint16_t word_offset, uint16_t sector, uint16_t word)
             {
                 word_offset = word_offset % words_per_sector;
